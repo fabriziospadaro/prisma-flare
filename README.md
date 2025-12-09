@@ -97,10 +97,17 @@ const users = await Query.user
 
 ### Callhooks & Middleware
 
-Define hooks to run logic before or after database operations.
+Define hooks to run logic before or after database operations. You can use `before` hooks for validation or data modification.
 
 ```typescript
-import { afterCreate, afterChange } from 'prisma-flare';
+import { beforeCreate, afterCreate, afterChange } from 'prisma-flare';
+
+// Validation: Prevent creating users with invalid emails
+beforeCreate('User', async (args) => {
+  if (!args.data.email.includes('@')) {
+    throw new Error('Invalid email address');
+  }
+});
 
 // Run after a User is created
 afterCreate('User', async (args, result) => {

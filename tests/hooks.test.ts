@@ -55,6 +55,29 @@ describe('Hooks Integration Tests', () => {
       const user = await db.query('user').where({ email: 'fail@example.com' }).findFirst();
       expect(user).toBeNull();
     });
+
+    it('should use before hook for validation', async () => {
+      // Example: Validate email format
+      beforeCreate('user', (args) => {
+        if (!args.data.email.includes('@')) {
+          throw new Error('Invalid email format');
+        }
+      });
+
+      // Should fail
+      await expect(
+        db.query('user').create({
+          data: { email: 'invalid-email', name: 'Invalid User' },
+        })
+      ).rejects.toThrow('Invalid email format');
+
+      // Should succeed
+      await expect(
+        db.query('user').create({
+          data: { email: 'valid@example.com', name: 'Valid User' },
+        })
+      ).resolves.toBeDefined();
+    });
   });
 
   describe('afterCreate Hook', () => {

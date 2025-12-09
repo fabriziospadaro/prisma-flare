@@ -36,9 +36,11 @@ async function fetchAffectedRecords(
   fields?: Record<string, true>
 ): Promise<any[]> {
   const delegate = db[model] as any;
+  // Ensure ID is always selected for tracking
+  const select = fields ? { ...fields, id: true } : undefined;
   const records = await delegate.findMany({
     where,
-    ...(fields && { select: fields }),
+    ...(select && { select }),
   });
   return records;
 }
@@ -63,11 +65,8 @@ export function addMiddleware(prisma: PrismaClient): void {
       prevData = await fetchAffectedRecords(prisma, modelName, args.where, fields);
     }
 
-    try {
-      await hookRegistry.runHooks('before', modelName, action as any, [args]);
-    } catch (error) {
-      console.error(error);
-    }
+    // Run before hooks (blocking, can throw)
+    await hookRegistry.runHooks('before', modelName, action as any, [args], prisma);
 
     const result = await next(params);
 
@@ -77,7 +76,11 @@ export function addMiddleware(prisma: PrismaClient): void {
       if (action === 'update') {
         newData = [result];
       } else {
-        newData = await fetchAffectedRecords(prisma, modelName, args.where);
+        // Use IDs from prevData to ensure we find the same records even if filter fields changed
+        const ids = prevData.map(r => r.id);
+        if (ids.length > 0) {
+          newData = await fetchAffectedRecords(prisma, modelName, { id: { in: ids } });
+        }
       }
 
       for (let i = 0; i < prevData.length; i++) {
@@ -85,14 +88,14 @@ export function addMiddleware(prisma: PrismaClient): void {
         const newRecord = newData.find(record => record.id === prevRecord.id);
         
         if (newRecord) {
-          hookRegistry.runColumnHooks(modelName, newRecord, prevRecord).catch(error => {
+          hookRegistry.runColumnHooks(modelName, newRecord, prevRecord, prisma).catch(error => {
             console.error('Column hook error:', error);
           });
         }
       }
     }
 
-    hookRegistry.runHooks('after', modelName, action as any, [args, result]).catch(error => {
+    hookRegistry.runHooks('after', modelName, action as any, [args, result], prisma).catch(error => {
       console.error('After hook error:', error);
     });
 

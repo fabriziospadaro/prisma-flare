@@ -18,6 +18,7 @@ class HookRegistry {
   };
   
   private fieldCache: Record<string, Record<string, true>>;
+  private modelsWithColumnHooks: Set<string>;
 
   constructor() {
     this.hooks = {
@@ -28,6 +29,7 @@ class HookRegistry {
       afterChange: {},
     };
     this.fieldCache = {};
+    this.modelsWithColumnHooks = new Set();
   }
 
   addHook(
@@ -49,6 +51,7 @@ class HookRegistry {
       this.columnHooks.afterChange[key] = [];
     }
     this.columnHooks.afterChange[key].push(fn);
+    this.modelsWithColumnHooks.add(model);
   }
 
   async runHooks(
@@ -56,32 +59,37 @@ class HookRegistry {
     model: ModelName, 
     action: PrismaOperation, 
     args: any[],
+    prisma: any
   ): Promise<void> {
     const key = `${model}:${action}`;
     const hooks = this.hooks[timing]?.[key] ?? [];
     
-    for (const hook of hooks) {
-      await (hook as any)(...args);
+    if (timing === 'after') {
+      await Promise.all(hooks.map(hook => (hook as any)(...args, prisma)));
+    } else {
+      for (const hook of hooks) {
+        await (hook as any)(...args, prisma);
+      }
     }
   }
 
-  async runColumnHooks(model: ModelName, newData: any, prevData: any): Promise<void> {
+  async runColumnHooks(model: ModelName, newData: any, prevData: any, prisma: any): Promise<void> {
+    const promises: Promise<void>[] = [];
     for (const column in newData) {
       const key = `${model}:${column}`;
       const hooks = this.columnHooks.afterChange[key];
       
       if (hooks && newData[column] !== prevData[column]) {
         for (const hook of hooks) {
-          await hook(prevData[column], newData[column], newData);
+          promises.push(hook(prevData[column], newData[column], newData, prisma) as Promise<void>);
         }
       }
     }
+    await Promise.all(promises);
   }
 
   hasColumnHooks(model: ModelName): boolean {
-    return Object.keys(this.columnHooks.afterChange).some(key => 
-      key.startsWith(`${model}:`)
-    );
+    return this.modelsWithColumnHooks.has(model);
   }
 
   getRelevantFields(model: ModelName): Record<string, true> {
@@ -117,6 +125,7 @@ class HookRegistry {
     this.hooks.after = {};
     this.columnHooks.afterChange = {};
     this.fieldCache = {};
+    this.modelsWithColumnHooks.clear();
   }
 }
 

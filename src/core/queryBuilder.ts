@@ -9,13 +9,15 @@ type SelectInput<T extends ModelName> = FindManyArgs<T> extends { select?: infer
 type IncludeInput<T extends ModelName> = FindManyArgs<T> extends { include?: infer I } ? I : never;
 type DistinctInput<T extends ModelName> = FindManyArgs<T> extends { distinct?: infer D } ? D : never;
 
+type OptionalWhere<T> = T extends { where: any } ? Omit<T, 'where'> & { where?: T['where'] } : T;
+
 type CreateArgs<T extends ModelName> = PrismaArgs<T, 'create'>;
 type CreateManyArgs<T extends ModelName> = PrismaArgs<T, 'createMany'>;
-type UpdateArgs<T extends ModelName> = PrismaArgs<T, 'update'>;
+type UpdateArgs<T extends ModelName> = OptionalWhere<PrismaArgs<T, 'update'>>;
 type UpdateManyArgs<T extends ModelName> = PrismaArgs<T, 'updateMany'>;
-type DeleteArgs<T extends ModelName> = PrismaArgs<T, 'delete'>;
+type DeleteArgs<T extends ModelName> = OptionalWhere<PrismaArgs<T, 'delete'>>;
 type DeleteManyArgs<T extends ModelName> = PrismaArgs<T, 'deleteMany'>;
-type UpsertArgs<T extends ModelName> = PrismaArgs<T, 'upsert'>;
+type UpsertArgs<T extends ModelName> = OptionalWhere<PrismaArgs<T, 'upsert'>>;
 
 type GroupByArgs<T extends ModelName> = PrismaArgs<T, 'groupBy'>;
 type GroupByInput<T extends ModelName> = GroupByArgs<T> extends { by: infer B } ? B : never;

@@ -35,8 +35,25 @@ describe('Hooks Integration Tests', () => {
           data: expect.objectContaining({
             email: 'test@example.com',
           }),
-        })
+        }),
+        expect.anything() // Prisma Client
       );
+    });
+
+    it('should block creation if hook throws error', async () => {
+      beforeCreate('user', () => {
+        throw new Error('Validation Failed');
+      });
+
+      await expect(
+        db.query('user').create({
+          data: { email: 'fail@example.com', name: 'Fail User' },
+        })
+      ).rejects.toThrow('Validation Failed');
+
+      // Verify user was NOT created
+      const user = await db.query('user').where({ email: 'fail@example.com' }).findFirst();
+      expect(user).toBeNull();
     });
   });
 
@@ -60,7 +77,8 @@ describe('Hooks Integration Tests', () => {
         expect.objectContaining({
           id: user.id,
           email: 'test@example.com',
-        })
+        }),
+        expect.anything() // Prisma Client
       );
     });
   });
@@ -75,8 +93,7 @@ describe('Hooks Integration Tests', () => {
 
       afterUpdate('user', callback);
 
-      await db.query('user').update({
-        where: { id: user.id },
+      await db.query('user').whereId(user.id).update({
         data: { name: 'Updated Name' },
       });
 
@@ -103,7 +120,37 @@ describe('Hooks Integration Tests', () => {
       expect(callback).toHaveBeenCalledWith(
         'Test User',
         'New Name',
-        expect.objectContaining({ id: user.id })
+        expect.objectContaining({ id: user.id }),
+        expect.anything() // Prisma Client
+      );
+    });
+
+    it('should trigger correctly on updateMany even if filter field changes', async () => {
+      const callback = vi.fn();
+      
+      // Create 2 users with status 'pending'
+      await db.query('user').createMany({
+        data: [
+          { email: 'u1@test.com', name: 'U1', status: 'pending' },
+          { email: 'u2@test.com', name: 'U2', status: 'pending' },
+        ]
+      });
+
+      afterChange('user', 'status', callback);
+
+      // Update them to 'active' - this changes the field we might filter by
+      await db.query('user').updateMany({
+        where: { status: 'pending' },
+        data: { status: 'active' },
+      });
+
+      // Should be called twice (once for each user)
+      expect(callback).toHaveBeenCalledTimes(2);
+      expect(callback).toHaveBeenCalledWith(
+        'pending',
+        'active',
+        expect.anything(),
+        expect.anything()
       );
     });
 

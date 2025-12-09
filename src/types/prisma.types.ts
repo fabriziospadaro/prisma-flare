@@ -95,7 +95,8 @@ export type PrismaOperation =
  * Callback function for before hooks
  */
 export type BeforeHookCallback<_T extends ModelName = ModelName> = (
-  args: any
+  args: any,
+  prisma: PrismaClient
 ) => Promise<void> | void;
 
 /**
@@ -103,7 +104,8 @@ export type BeforeHookCallback<_T extends ModelName = ModelName> = (
  */
 export type AfterHookCallback<_T extends ModelName = ModelName> = (
   args: any,
-  result: any
+  result: any,
+  prisma: PrismaClient
 ) => Promise<void> | void;
 
 /**
@@ -112,7 +114,8 @@ export type AfterHookCallback<_T extends ModelName = ModelName> = (
 export type ColumnChangeCallback<T extends ModelName = ModelName> = (
   oldValue: any,
   newValue: any,
-  record: NonNullable<RecordType<T>>
+  record: NonNullable<RecordType<T>>,
+  prisma: PrismaClient
 ) => Promise<void> | void;
 
 /**

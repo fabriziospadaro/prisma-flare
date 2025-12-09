@@ -1,39 +1,35 @@
 import { Prisma } from '@prisma/client';
-import type { ModelName, ModelDelegate, RecordType, FindManyArgs, PrismaArgs } from '../types';
-
-type QueryArgs = Record<string, any>;
-
-type WhereInput<T extends ModelName> = FindManyArgs<T> extends { where?: infer W } ? W : never;
-type OrderByInput<T extends ModelName> = FindManyArgs<T> extends { orderBy?: infer O } ? O : never;
-type SelectInput<T extends ModelName> = FindManyArgs<T> extends { select?: infer S } ? S : never;
-type IncludeInput<T extends ModelName> = FindManyArgs<T> extends { include?: infer I } ? I : never;
-type DistinctInput<T extends ModelName> = FindManyArgs<T> extends { distinct?: infer D } ? D : never;
-
-type OptionalWhere<T> = T extends { where: any } ? Omit<T, 'where'> & { where?: T['where'] } : T;
-
-type CreateArgs<T extends ModelName> = PrismaArgs<T, 'create'>;
-type CreateManyArgs<T extends ModelName> = PrismaArgs<T, 'createMany'>;
-type UpdateArgs<T extends ModelName> = OptionalWhere<PrismaArgs<T, 'update'>>;
-type UpdateManyArgs<T extends ModelName> = PrismaArgs<T, 'updateMany'>;
-type DeleteArgs<T extends ModelName> = OptionalWhere<PrismaArgs<T, 'delete'>>;
-type DeleteManyArgs<T extends ModelName> = PrismaArgs<T, 'deleteMany'>;
-type UpsertArgs<T extends ModelName> = OptionalWhere<PrismaArgs<T, 'upsert'>>;
-
-type GroupByArgs<T extends ModelName> = PrismaArgs<T, 'groupBy'>;
-type GroupByInput<T extends ModelName> = GroupByArgs<T> extends { by: infer B } ? B : never;
-type HavingInput<T extends ModelName> = GroupByArgs<T> extends { having?: infer H } ? H : never;
-
-type AggregateArgs<T extends ModelName> = PrismaArgs<T, 'aggregate'>;
-type SumFields<T extends ModelName> = AggregateArgs<T> extends { _sum?: infer S } ? keyof S : string;
-type AvgFields<T extends ModelName> = AggregateArgs<T> extends { _avg?: infer A } ? keyof A : string;
-type MinFields<T extends ModelName> = AggregateArgs<T> extends { _min?: infer M } ? keyof M : string;
-type MaxFields<T extends ModelName> = AggregateArgs<T> extends { _max?: infer M } ? keyof M : string;
+import type { 
+  ModelName, 
+  ModelDelegate, 
+  RecordType, 
+  WhereInput,
+  OrderByInput,
+  SelectInput,
+  IncludeInput,
+  DistinctInput,
+  CreateArgs,
+  CreateManyArgs,
+  UpdateArgs,
+  UpdateManyArgs,
+  DeleteArgs,
+  DeleteManyArgs,
+  UpsertArgs,
+  GroupByInput,
+  HavingInput,
+  SumFields,
+  AvgFields,
+  MinFields,
+  MaxFields,
+  QueryArgs,
+  PaginatedResult
+} from '../types';
 
 /**
  * QueryBuilder for chainable Prisma queries with full type safety
  * The type safety is enforced through the ModelDelegate parameter
  */
-export default class QueryBuilder<T extends ModelName, Args extends Record<string, any> = {}> {
+export default class QueryBuilder<T extends ModelName, Args extends Record<string, any> = Record<string, never>> {
   protected model: ModelDelegate<T>;
   protected query: QueryArgs;
 
@@ -119,9 +115,9 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
    * Selects only the specified field and returns its value
    * @param field - Field name to retrieve
    */
-  async only<K extends keyof NonNullable<RecordType<T>>>(
+  async only<K extends keyof RecordType<T>>(
     field: K
-  ): Promise<NonNullable<RecordType<T>>[K] | null> {
+  ): Promise<RecordType<T>[K] | null> {
     this.query.select = { [field]: true };
     const result = await (this.model as any).findFirst(this.query);
 
@@ -129,7 +125,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
       return null;
     }
 
-    return result[field] as NonNullable<RecordType<T>>[K];
+    return result[field] as RecordType<T>[K];
   }
 
   /**
@@ -181,11 +177,106 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
   }
 
   /**
-   * Executes the query with the specified action
-   * @param action - Prisma action to execute
+   * Paginates the results
+   * @param page - Page number (1-based)
+   * @param perPage - Number of records per page
    */
-  async run(action: keyof ModelDelegate<T> = 'findMany' as any): Promise<any> {
-    return (this.model as any)[action](this.query);
+  async paginate(page: number = 1, perPage: number = 15): Promise<PaginatedResult<RecordType<T>>> {
+    const skip = (page - 1) * perPage;
+    const take = perPage;
+
+    this.query.skip = skip;
+    this.query.take = take;
+
+    const [data, total] = await Promise.all([
+      (this.model as any).findMany(this.query),
+      (this.model as any).count({ where: this.query.where }),
+    ]);
+
+    const lastPage = Math.ceil(total / perPage);
+
+    return {
+      data,
+      meta: {
+        total,
+        lastPage,
+        currentPage: page,
+        perPage,
+        prev: page > 1 ? page - 1 : null,
+        next: page < lastPage ? page + 1 : null,
+      },
+    };
+  }
+
+  /**
+   * Conditionally executes a callback on the query builder
+   * @param condition - Boolean or function returning boolean
+   * @param callback - Function to execute if condition is true
+   */
+  when(
+    condition: boolean | (() => boolean),
+    callback: (qb: this) => void
+  ): this {
+    const isTrue = typeof condition === 'function' ? condition() : condition;
+    if (isTrue) {
+      callback(this);
+    }
+    return this;
+  }
+
+  /**
+   * Processes results in chunks to avoid memory issues
+   * @param size - Size of each chunk
+   * @param callback - Function to process each chunk
+   */
+  async chunk(
+    size: number,
+    callback: (results: RecordType<T>[]) => Promise<void> | void
+  ): Promise<void> {
+    let page = 1;
+    let hasMore = true;
+
+    const originalSkip = this.query.skip;
+    const originalTake = this.query.take;
+
+    while (hasMore) {
+      this.query.skip = (page - 1) * size;
+      this.query.take = size;
+
+      const results = await (this.model as any).findMany(this.query);
+
+      if (results.length > 0) {
+        await callback(results);
+        page++;
+        
+        if (results.length < size) {
+          hasMore = false;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    this.query.skip = originalSkip;
+    this.query.take = originalTake;
+  }
+
+  /**
+   * Clones the current query builder instance
+   */
+  clone(): QueryBuilder<T, Args> {
+    const queryCopy = JSON.parse(JSON.stringify(this.query));
+    return new QueryBuilder<T, Args>(this.model, queryCopy);
+  }
+
+  /** Executes findFirstOrThrow and returns a single record */
+  async findFirstOrThrow(): Promise<NonNullable<RecordType<T>>> {
+    return (this.model as any).findFirstOrThrow(this.query);
+  }
+
+  /** Executes findUniqueOrThrow and returns a single record */
+  async findUniqueOrThrow(): Promise<NonNullable<RecordType<T>>> {
+    return (this.model as any).findUniqueOrThrow(this.query);
   }
 
   /** Executes findMany and returns an array of records */
@@ -301,19 +392,12 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
   }
 
   /**
-   * Plucks the specified fields from all results
-   * @param fields - Select object with fields to pluck
+   * Plucks the specified field from all results
+   * @param field - Field name to pluck
    */
-  async pluck(fields: SelectInput<T>): Promise<any[]> {
-    this.query.select = fields;
+  async pluck<K extends keyof RecordType<T>>(field: K): Promise<RecordType<T>[K][]> {
+    this.query.select = { [field]: true };
     const results = await (this.model as any).findMany(this.query);
-
-    const fieldKeys = Object.keys(fields as any);
-    if (fieldKeys.length === 1) {
-      const fieldName = fieldKeys[0];
-      return results.map((result: any) => result[fieldName]);
-    } else {
-      return results.map((result: any) => fieldKeys.map((key) => result[key]));
-    }
+    return results.map((result: any) => result[field]);
   }
 }

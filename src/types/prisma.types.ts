@@ -38,9 +38,9 @@ export type PrismaArgs<
 /**
  * Extract the record type for a given model
  */
-export type RecordType<T extends ModelName> = Awaited<
+export type RecordType<T extends ModelName> = NonNullable<Awaited<
   ReturnType<ModelDelegate<T>['findFirst']>
->;
+>>;
 
 /**
  * Extract FindMany args type for a given model
@@ -53,24 +53,94 @@ export type FindManyArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'findM
 export type FindFirstArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'findFirst'>>;
 
 /**
+ * Helper to make where clause optional
+ */
+export type OptionalWhere<T> = T extends { where: any } ? Omit<T, 'where'> & { where?: T['where'] } : T;
+
+/**
  * Extract Create args type for a given model
  */
 export type CreateArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'create'>>;
 
 /**
+ * Extract CreateMany args type for a given model
+ */
+export type CreateManyArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'createMany'>>;
+
+/**
  * Extract Update args type for a given model
  */
-export type UpdateArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'update'>>;
+export type UpdateArgs<T extends ModelName> = OptionalWhere<NonNullable<PrismaArgs<T, 'update'>>>;
+
+/**
+ * Extract UpdateMany args type for a given model
+ */
+export type UpdateManyArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'updateMany'>>;
 
 /**
  * Extract Delete args type for a given model
  */
-export type DeleteArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'delete'>>;
+export type DeleteArgs<T extends ModelName> = OptionalWhere<NonNullable<PrismaArgs<T, 'delete'>>>;
+
+/**
+ * Extract DeleteMany args type for a given model
+ */
+export type DeleteManyArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'deleteMany'>>;
 
 /**
  * Extract Upsert args type for a given model
  */
-export type UpsertArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'upsert'>>;
+export type UpsertArgs<T extends ModelName> = OptionalWhere<NonNullable<PrismaArgs<T, 'upsert'>>>;
+
+/**
+ * Extract Where input type
+ */
+export type WhereInput<T extends ModelName> = FindManyArgs<T> extends { where?: infer W } ? W : never;
+
+/**
+ * Extract OrderBy input type
+ */
+export type OrderByInput<T extends ModelName> = FindManyArgs<T> extends { orderBy?: infer O } ? O : never;
+
+/**
+ * Extract Select input type
+ */
+export type SelectInput<T extends ModelName> = FindManyArgs<T> extends { select?: infer S } ? S : never;
+
+/**
+ * Extract Include input type
+ */
+export type IncludeInput<T extends ModelName> = FindManyArgs<T> extends { include?: infer I } ? I : never;
+
+/**
+ * Extract Distinct input type
+ */
+export type DistinctInput<T extends ModelName> = FindManyArgs<T> extends { distinct?: infer D } ? D : never;
+
+/**
+ * Extract GroupBy args type
+ */
+export type GroupByArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'groupBy'>>;
+
+/**
+ * Extract GroupBy input type
+ */
+export type GroupByInput<T extends ModelName> = GroupByArgs<T> extends { by: infer B } ? B : never;
+
+/**
+ * Extract Having input type
+ */
+export type HavingInput<T extends ModelName> = GroupByArgs<T> extends { having?: infer H } ? H : never;
+
+/**
+ * Extract Aggregate args type
+ */
+export type AggregateArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'aggregate'>>;
+
+export type SumFields<T extends ModelName> = AggregateArgs<T> extends { _sum?: infer S } ? keyof S : string;
+export type AvgFields<T extends ModelName> = AggregateArgs<T> extends { _avg?: infer A } ? keyof A : string;
+export type MinFields<T extends ModelName> = AggregateArgs<T> extends { _min?: infer M } ? keyof M : string;
+export type MaxFields<T extends ModelName> = AggregateArgs<T> extends { _max?: infer M } ? keyof M : string;
 
 /**
  * Hook timing - before or after operation
@@ -128,3 +198,24 @@ export interface AggregateResult {
   _max: Record<string, any>;
   _count: Record<string, number>;
 }
+
+/**
+ * Generic query arguments
+ */
+export type QueryArgs = Record<string, any>;
+
+/**
+ * Paginated result interface
+ */
+export interface PaginatedResult<T> {
+  data: T[];
+  meta: {
+    total: number;
+    lastPage: number;
+    currentPage: number;
+    perPage: number;
+    prev: number | null;
+    next: number | null;
+  };
+}
+

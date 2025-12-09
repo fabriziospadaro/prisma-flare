@@ -35,7 +35,7 @@ export function generateQueries() {
     try {
       const configFile = fs.readFileSync(configPath, 'utf-8');
       config = { ...config, ...JSON.parse(configFile) };
-    } catch (_e) {
+    } catch {
       console.warn('⚠️ Could not read prisma-flare.config.json, using defaults.');
     }
   }

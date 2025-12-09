@@ -77,13 +77,22 @@ const posts = await Query.post
   .order({ createdAt: 'desc' })
   .limit(10)
   .include({ author: true })
-  .get(); // or .findMany()
+  .findMany();
 
 // Complex filtering made easy
 const activeUsers = await Query.user
   .where({ isActive: true })
   .where({ role: 'ADMIN' })
   .count();
+
+// Pagination
+const { data, meta } = await Query.user.paginate(1, 15);
+
+// Conditional queries
+const search = 'John';
+const users = await Query.user
+  .when(!!search, (q) => q.where({ name: { contains: search } }))
+  .findMany();
 ```
 
 ### Callhooks & Middleware
@@ -133,9 +142,13 @@ npx prisma-flare db:seed    # Seed database
 - `include(relations)` - Include relations
 - `exists()` - Check if record exists
 - `only(field)` - Get single field value
-- `pluck(fields)` - Extract specific fields
+- `pluck(field)` - Extract specific field values as an array
+- `paginate(page, perPage)` - Get paginated results with metadata
+- `when(condition, callback)` - Conditionally apply query operations
+- `chunk(size, callback)` - Process large datasets in chunks
+- `clone()` - Clone the query builder
 - `count()`, `sum(field)`, `avg(field)`, `min(field)`, `max(field)` - Aggregations
-- `findMany()`, `findFirst()`, `create()`, `update()`, `delete()` - Execute queries
+- `findMany()`, `findFirst()`, `findFirstOrThrow()`, `findUnique()`, `findUniqueOrThrow()`, `create()`, `update()`, `delete()` - Execute queries
 
 ## License
 

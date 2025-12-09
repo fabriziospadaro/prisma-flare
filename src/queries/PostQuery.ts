@@ -16,12 +16,12 @@ export default class PostQuery extends QueryBuilder<'post'> {
     return this;
   }
 
-  searchTitle(title: string): this {
+  withTitle(title: string): this {
     this.where({ title: { contains: title } });
     return this;
   }
 
-  byAuthor(authorId: number): this {
+  withAuthorId(authorId: number): this {
     this.where({ authorId });
     return this;
   }

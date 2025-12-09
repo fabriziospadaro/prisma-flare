@@ -23,9 +23,9 @@ describe('Custom Queries Integration Tests', () => {
         ],
       });
 
-      // Test chaining: searchName + order + limit
+      // Test chaining: withName + order + limit
       const users = await Query.user
-        .searchName('Alice')
+        .withName('Alice')
         .order({ name: 'asc' })
         .limit(1)
         .findMany();
@@ -78,10 +78,10 @@ describe('Custom Queries Integration Tests', () => {
         ],
       });
 
-      // Test chaining: published + searchTitle
+      // Test chaining: published + withTitle
       const publishedPosts = await Query.post
         .published()
-        .searchTitle('First')
+        .withTitle('First')
         .findMany();
 
       expect(publishedPosts).toHaveLength(1);
@@ -90,7 +90,7 @@ describe('Custom Queries Integration Tests', () => {
       // Test chaining: drafts
       const drafts = await Query.post
         .drafts()
-        .byAuthor(user.id)
+        .withAuthorId(user.id)
         .findMany();
 
       expect(drafts).toHaveLength(1);

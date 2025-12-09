@@ -153,6 +153,79 @@ const myAdapter: DatabaseAdapter = {
 dbAdapterRegistry.register(myAdapter);
 ```
 
+## Custom Query Methods
+
+You can extend the generated query classes with custom methods for your domain-specific needs. Simply add methods to your query class that use the built-in `where()` method to build conditions.
+
+```typescript
+// src/queries/PostQuery.ts
+import { db } from '../core/db';
+import QueryBuilder from '../core/queryBuilder';
+
+export default class PostQuery extends QueryBuilder<'post'> {
+  constructor() {
+    super(db.post);
+  }
+
+  // Filter published posts
+  published(): this {
+    this.where({ published: true });
+    return this;
+  }
+
+  // Filter draft posts
+  drafts(): this {
+    this.where({ published: false });
+    return this;
+  }
+
+  // Search by title (contains)
+  withTitle(title: string): this {
+    this.where({ title: { contains: title } });
+    return this;
+  }
+
+  // Filter by author ID
+  withAuthorId(authorId: number): this {
+    this.where({ authorId });
+    return this;
+  }
+
+  // Get recent posts
+  recent(days: number): this {
+    const date = new Date();
+    date.setDate(date.getDate() - days);
+    this.where({ createdAt: { gte: date } });
+    return this;
+  }
+}
+```
+
+Then use your custom methods in queries:
+
+```typescript
+import Query from './src/queries';
+
+// Use custom methods with full chainability
+const recentPublished = await Query.post
+  .published()
+  .recent(7)
+  .order({ createdAt: 'desc' })
+  .findMany();
+
+const authorPosts = await Query.post
+  .withAuthorId(123)
+  .withTitle('TypeScript')
+  .include({ author: true })
+  .findMany();
+```
+
+**Tips for Custom Methods:**
+- Always return `this` to maintain chainability
+- Use descriptive names with prefixes like `with*` for filters
+- Leverage Prisma's query operators (`contains`, `gte`, `lte`, etc.)
+- Keep methods focused on a single responsibility
+
 ## Query Builder Methods
 
 - `where(condition)` - Add WHERE conditions

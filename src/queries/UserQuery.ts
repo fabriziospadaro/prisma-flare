@@ -11,7 +11,7 @@ export default class UserQuery extends QueryBuilder<'user'> {
     return this;
   }
 
-  searchName(name: string): this {
+  withName(name: string): this {
     this.where({ name: { contains: name } });
     return this;
   }

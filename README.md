@@ -125,7 +125,7 @@ afterChange('Post', 'published', async (oldValue, newValue, record) => {
 
 ## CLI Utilities
 
-Prisma Flare comes with a suite of CLI tools to manage your database workflow.
+Prisma Flare comes with a suite of CLI tools to manage your database workflow. It supports **PostgreSQL** and **SQLite** out of the box, and is extensible for other databases.
 
 ```bash
 npx prisma-flare generate   # Generate query classes from schema
@@ -134,6 +134,23 @@ npx prisma-flare db:drop    # Drop database
 npx prisma-flare db:migrate # Run migrations
 npx prisma-flare db:reset   # Reset database
 npx prisma-flare db:seed    # Seed database
+```
+
+### Custom Database Adapters
+
+You can add support for other databases by registering a custom adapter.
+
+```typescript
+import { dbAdapterRegistry, DatabaseAdapter } from 'prisma-flare';
+
+const myAdapter: DatabaseAdapter = {
+  name: 'my-db',
+  matches: (url) => url.startsWith('mydb://'),
+  create: async (url) => { /* custom create logic */ },
+  drop: async (url) => { /* custom drop logic */ }
+};
+
+dbAdapterRegistry.register(myAdapter);
 ```
 
 ## Query Builder Methods

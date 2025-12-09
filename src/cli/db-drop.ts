@@ -1,44 +1,15 @@
 #!/usr/bin/env node
 /**
  * Database drop utility
- * Drops the PostgreSQL database specified in DATABASE_URL from .env
+ * Drops the database specified in DATABASE_URL from .env
  */
 
-import { Client } from 'pg';
 import * as dotenv from 'dotenv';
 import * as readline from 'readline';
+import { registry } from '../core/adapters';
 
 // Load environment variables
 dotenv.config();
-
-interface DatabaseConfig {
-  host: string;
-  port: number;
-  user: string;
-  password: string;
-  database: string;
-}
-
-/**
- * Parse PostgreSQL connection string
- */
-function parseDatabaseUrl(url: string): DatabaseConfig {
-  const regex =
-    /postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)(\?.*)?/;
-  const match = url.match(regex);
-
-  if (!match) {
-    throw new Error('Invalid DATABASE_URL format');
-  }
-
-  return {
-    user: decodeURIComponent(match[1]),
-    password: decodeURIComponent(match[2]),
-    host: match[3],
-    port: parseInt(match[4], 10),
-    database: match[5],
-  };
-}
 
 /**
  * Prompt user for confirmation
@@ -70,12 +41,13 @@ async function dropDatabase(): Promise<void> {
   }
 
   try {
-    const config = parseDatabaseUrl(databaseUrl);
+    const adapter = registry.getAdapter(databaseUrl);
+    console.log(`✓ Using adapter: ${adapter.name}`);
 
     // Confirm before dropping
     if (!skipConfirmation) {
       const confirmed = await confirm(
-        `⚠️  Are you sure you want to drop database '${config.database}'? (y/N): `
+        `⚠️  Are you sure you want to drop the database? (y/N): `
       );
 
       if (!confirmed) {
@@ -84,31 +56,7 @@ async function dropDatabase(): Promise<void> {
       }
     }
 
-    // Connect to postgres database (default)
-    const client = new Client({
-      host: config.host,
-      port: config.port,
-      user: config.user,
-      password: config.password,
-      database: 'postgres',
-    });
-
-    await client.connect();
-    console.log('✓ Connected to PostgreSQL server');
-
-    // Terminate all connections to the target database
-    await client.query(`
-      SELECT pg_terminate_backend(pg_stat_activity.pid)
-      FROM pg_stat_activity
-      WHERE pg_stat_activity.datname = $1
-      AND pid <> pg_backend_pid()
-    `, [config.database]);
-
-    // Drop database
-    await client.query(`DROP DATABASE IF EXISTS "${config.database}"`);
-    console.log(`✓ Database '${config.database}' dropped successfully`);
-
-    await client.end();
+    await adapter.drop(databaseUrl);
     process.exit(0);
   } catch (error) {
     console.error('❌ Error dropping database:', error);

@@ -13,6 +13,8 @@ export {
 } from './core/hooks';
 export { default as hookRegistry } from './core/hookRegistry';
 export { addMiddleware, loadCallbacks } from './core/hookMiddleware';
+export { registry as dbAdapterRegistry } from './core/adapters';
+export type { DatabaseAdapter } from './core/adapters';
 
 // Export types
 export type {

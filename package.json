@@ -1,0 +1,86 @@
+{
+  "name": "prismaroids",
+  "version": "1.0.0",
+  "description": "Prisma utilities package with callback system and query builder for chained operations",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepublishOnly": "npm run clean && npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "example:queries": "tsx examples/queryBuilder.ts",
+    "example:custom": "tsx examples/customQueries.ts",
+    "db:create": "tsx src/cli/db-create.ts",
+    "db:drop": "tsx src/cli/db-drop.ts",
+    "db:migrate": "tsx src/cli/db-migrate.ts",
+    "db:reset": "tsx src/cli/db-reset.ts",
+    "db:seed": "tsx src/cli/db-seed.ts"
+  },
+  "keywords": [
+    "prisma",
+    "orm",
+    "utilities",
+    "callbacks",
+    "query-builder",
+    "middleware",
+    "hooks",
+    "typescript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.25",
+    "@types/pg": "^8.15.6",
+    "@typescript-eslint/eslint-plugin": "^8.49.0",
+    "@typescript-eslint/parser": "^8.49.0",
+    "@vitest/ui": "^4.0.15",
+    "dotenv": "^17.2.3",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "pg": "^8.16.3",
+    "prettier": "^3.7.4",
+    "prisma": "^5.9.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
+  },
+  "peerDependencies": {
+    "@prisma/client": "^5.0.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./queryBuilder": {
+      "types": "./dist/core/queryBuilder.d.ts",
+      "import": "./dist/core/queryBuilder.js"
+    },
+    "./hooks": {
+      "types": "./dist/core/hooks.d.ts",
+      "import": "./dist/core/hooks.js"
+    },
+    "./db": {
+      "types": "./dist/core/db.d.ts",
+      "import": "./dist/core/db.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "QUICKSTART.md"
+  ]
+}

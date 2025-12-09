@@ -1,0 +1,35 @@
+// Main entry point for Prismaroids
+export { db, loadCallbacks } from './core/db';
+export { default as ExtendedPrismaClient } from './core/extendedPrismaClient';
+export { default as QueryBuilder } from './core/queryBuilder';
+export { 
+  beforeCreate, 
+  afterCreate, 
+  beforeUpdate, 
+  afterUpdate, 
+  beforeDelete, 
+  afterDelete, 
+  afterChange,
+  afterUpsert 
+} from './core/hooks';
+export { default as hookRegistry } from './core/hookRegistry';
+export { addMiddleware } from './core/hookMiddleware';
+
+// Export types
+export type {
+  ModelName,
+  ModelDelegate,
+  RecordType,
+  FindManyArgs,
+  FindFirstArgs,
+  CreateArgs,
+  UpdateArgs,
+  DeleteArgs,
+  UpsertArgs,
+  HookTiming,
+  PrismaOperation,
+  BeforeHookCallback,
+  AfterHookCallback,
+  ColumnChangeCallback,
+  AggregateResult
+} from './types';

@@ -10,10 +10,6 @@ export default defineConfig({
     teardownTimeout: 30000,
     isolate: true,
     fileParallelism: false,
-    poolOptions: {
-      threads: {
-        singleThread: true,
-      },
-    },
+    maxConcurrency: 1,
   },
 });

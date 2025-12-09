@@ -2,12 +2,13 @@
   "name": "prisma-flare",
   "version": "1.0.0",
   "description": "Prisma utilities package with callback system and query builder for chained operations",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "clean": "rm -rf dist",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
@@ -56,6 +57,7 @@
     "pg": "^8.16.3",
     "prettier": "^3.7.4",
     "prisma": "^5.9.1",
+    "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.15"
@@ -63,19 +65,23 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     },
     "./queryBuilder": {
       "types": "./dist/core/queryBuilder.d.ts",
-      "import": "./dist/core/queryBuilder.js"
+      "import": "./dist/core/queryBuilder.js",
+      "require": "./dist/core/queryBuilder.cjs"
     },
     "./hooks": {
       "types": "./dist/core/hooks.d.ts",
-      "import": "./dist/core/hooks.js"
+      "import": "./dist/core/hooks.js",
+      "require": "./dist/core/hooks.cjs"
     },
     "./db": {
       "types": "./dist/core/db.d.ts",
-      "import": "./dist/core/db.js"
+      "import": "./dist/core/db.js",
+      "require": "./dist/core/db.cjs"
     }
   },
   "files": [

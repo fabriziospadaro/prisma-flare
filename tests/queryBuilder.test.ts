@@ -2,8 +2,10 @@
  * Query Builder Integration Tests
  */
 
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
-import { db } from '../src';
+import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest';
+import { db } from '../src/core/db';
+import { QueryBuilder } from '../src';
+import { Prisma } from '@prisma/client';
 import { cleanDatabase, disconnectPrisma } from './helpers';
 
 describe('QueryBuilder Integration Tests', () => {

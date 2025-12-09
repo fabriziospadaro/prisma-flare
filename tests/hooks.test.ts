@@ -3,7 +3,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
-import { db, beforeCreate, afterCreate, afterUpdate, afterChange } from '../src';
+import { beforeCreate, afterCreate, afterUpdate, afterChange } from '../src';
+import { db } from '../src/core/db';
 import hookRegistry from '../src/core/hookRegistry';
 import { cleanDatabase, disconnectPrisma } from './helpers';
 

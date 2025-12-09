@@ -1,5 +1,5 @@
 {
-  "name": "prismaroids",
+  "name": "prisma-flare",
   "version": "1.0.0",
   "description": "Prisma utilities package with callback system and query builder for chained operations",
   "main": "./dist/index.js",
@@ -37,7 +37,10 @@
   ],
   "author": "",
   "license": "ISC",
-  "dependencies": {
+  "bin": {
+    "prisma-flare": "./dist/cli/index.js"
+  },
+  "peerDependencies": {
     "@prisma/client": "^5.0.0"
   },
   "devDependencies": {
@@ -56,9 +59,6 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.15"
-  },
-  "peerDependencies": {
-    "@prisma/client": "^5.0.0"
   },
   "exports": {
     ".": {
@@ -80,7 +80,6 @@
   },
   "files": [
     "dist",
-    "README.md",
-    "QUICKSTART.md"
+    "README.md"
   ]
 }

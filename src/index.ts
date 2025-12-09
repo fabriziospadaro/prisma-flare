@@ -1,5 +1,4 @@
-// Main entry point for Prismaroids
-export { db, loadCallbacks } from './core/db';
+// Main entry point for Prisma Flare
 export { default as ExtendedPrismaClient } from './core/extendedPrismaClient';
 export { default as QueryBuilder } from './core/queryBuilder';
 export { 
@@ -13,7 +12,7 @@ export {
   afterUpsert 
 } from './core/hooks';
 export { default as hookRegistry } from './core/hookRegistry';
-export { addMiddleware } from './core/hookMiddleware';
+export { addMiddleware, loadCallbacks } from './core/hookMiddleware';
 
 // Export types
 export type {

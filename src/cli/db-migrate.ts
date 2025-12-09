@@ -6,6 +6,7 @@
 
 import { execSync } from 'child_process';
 import * as dotenv from 'dotenv';
+import { generateQueries } from './generate-queries';
 
 // Load environment variables
 dotenv.config();
@@ -41,6 +42,11 @@ function runMigrations(): void {
     });
 
     console.log('✓ Prisma Client generated successfully');
+
+    console.log('🔄 Generating Query classes...');
+    generateQueries();
+    console.log('✓ Query classes generated successfully');
+
     process.exit(0);
   } catch (error) {
     console.error('❌ Error running migrations:', error);

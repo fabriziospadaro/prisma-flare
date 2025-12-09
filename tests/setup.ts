@@ -26,7 +26,7 @@ beforeAll(async () => {
     env: process.env,
   });
   
-  execSync('npx prisma migrate deploy', {
+  execSync('tsx src/cli/db-migrate.ts', {
     stdio: 'inherit',
     env: process.env,
   });

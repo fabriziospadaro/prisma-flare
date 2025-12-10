@@ -82,7 +82,10 @@ export function generateQueries() {
     console.log(`Generating ${queryFileName}...`);
     
     let queryBuilderImport = "import { QueryBuilder } from 'prisma-flare';";
-    if (isLibraryDev) {
+    
+    // Only use relative import if we are developing the library AND the file exists
+    const localQueryBuilderPath = path.join(rootDir, 'src/core/queryBuilder.ts');
+    if (isLibraryDev && fs.existsSync(localQueryBuilderPath)) {
        // In library dev, we import from core
        // queriesDir is src/queries
        // QueryBuilder is in src/core/queryBuilder

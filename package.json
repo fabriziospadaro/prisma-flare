@@ -18,8 +18,6 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "example:queries": "tsx examples/queryBuilder.ts",
-    "example:custom": "tsx examples/customQueries.ts",
     "db:create": "tsx src/cli/db-create.ts",
     "db:drop": "tsx src/cli/db-drop.ts",
     "db:migrate": "tsx src/cli/db-migrate.ts",
@@ -36,7 +34,7 @@
     "hooks",
     "typescript"
   ],
-  "author": "",
+  "author": "Fabrizio Spadaro",
   "license": "ISC",
   "bin": {
     "prisma-flare": "./dist/cli/index.js"

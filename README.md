@@ -28,12 +28,12 @@ Replace your standard `PrismaClient` with `ExtendedPrismaClient` in your databas
 
 ```typescript
 // src/db.ts
-import { ExtendedPrismaClient, addMiddleware } from 'prisma-flare';
+import { ExtendedPrismaClient, registerHooks } from 'prisma-flare';
 
 const db = new ExtendedPrismaClient();
 
 // Initialize hooks middleware
-addMiddleware(db);
+registerHooks(db);
 
 export { db };
 ```

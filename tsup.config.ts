@@ -10,8 +10,7 @@ export default defineConfig({
     'src/cli/db-reset.ts',
     'src/cli/db-seed.ts',
     'src/core/queryBuilder.ts',
-    'src/core/hooks.ts',
-    'src/core/db.ts'
+    'src/core/hooks.ts'
   ],
   format: ['cjs', 'esm'],
   dts: true,

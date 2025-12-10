@@ -45,7 +45,7 @@ async function fetchAffectedRecords(
   return records;
 }
 
-export function addMiddleware(prisma: PrismaClient): void {
+export function registerHooks(prisma: PrismaClient): void {
   prisma.$use(async (params, next) => {
     const { model, action, args } = params;
 

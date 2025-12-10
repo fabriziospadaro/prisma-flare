@@ -1,11 +1,11 @@
-import { loadCallbacks, addMiddleware } from './hookMiddleware';
+import { loadCallbacks, registerHooks } from './hookMiddleware';
 import ExtendedPrismaClient from './extendedPrismaClient';
 
 let db: ExtendedPrismaClient;
 
 if (process.env.NODE_ENV === 'production') {
   db = new ExtendedPrismaClient();
-  addMiddleware(db);
+  registerHooks(db);
 } else {
   const globalWithDb = global as typeof globalThis & {
     db: ExtendedPrismaClient;
@@ -13,7 +13,7 @@ if (process.env.NODE_ENV === 'production') {
 
   if (!globalWithDb.db) {
     globalWithDb.db = new ExtendedPrismaClient();
-    addMiddleware(globalWithDb.db);
+    registerHooks(globalWithDb.db);
   }
   db = globalWithDb.db;
 }

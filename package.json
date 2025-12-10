@@ -78,11 +78,6 @@
       "types": "./dist/core/hooks.d.ts",
       "import": "./dist/core/hooks.js",
       "require": "./dist/core/hooks.cjs"
-    },
-    "./db": {
-      "types": "./dist/core/db.d.ts",
-      "import": "./dist/core/db.js",
-      "require": "./dist/core/db.cjs"
     }
   },
   "files": [

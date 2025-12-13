@@ -50,34 +50,15 @@ function runScript(scriptName: string) {
     console.error(`No script found for ${scriptName}`);
     return;
   }
-
-  // We need to run the script using tsx or node depending on environment.
-  // Since this is a library, we might be running from node_modules.
-  // The scripts themselves are TS files.
-  // If the user is using this library, they likely have tsx or ts-node.
-  // But we should probably compile these scripts to JS for the bin?
-  // Or assume the user has a TS environment.
-  // Given the "plug and play" requirement, we should probably ship JS.
-  // But for now, let's assume we are running the TS files using tsx which is a dependency.
-  
-  // Actually, if we publish this, we publish JS files in dist/.
-  // So we should run the JS versions in dist/cli/.
   
   let scriptPath = path.join(__dirname, file.replace('.ts', '.js'));
 
-  // Fix for tsup code splitting moving __dirname to root dist folder
   if (!fs.existsSync(scriptPath)) {
     const cliScriptPath = path.join(__dirname, 'cli', file.replace('.ts', '.js'));
     if (fs.existsSync(cliScriptPath)) {
       scriptPath = cliScriptPath;
     }
   }
-  
-  // If we are in dev (ts-node/tsx), we might need the .ts file
-  // But standard practice is to run the compiled .js file.
-  
-  // Let's try to find the .js file first, if not fall back to .ts?
-  // Or just assume we are running from the built distribution.
   
   const child = spawn('node', [scriptPath], { stdio: 'inherit' });
   

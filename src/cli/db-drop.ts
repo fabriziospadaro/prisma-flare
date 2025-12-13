@@ -1,23 +1,14 @@
 #!/usr/bin/env node
-/**
- * Database drop utility
- * Drops the database specified in DATABASE_URL from .env
- */
 
 import * as dotenv from 'dotenv';
 import * as readline from 'readline';
 import { registry } from '../core/adapters';
 import { loadConfig } from './config';
 
-// Load configuration
 const config = loadConfig();
 
-// Load environment variables
 dotenv.config({ path: config.envPath });
 
-/**
- * Prompt user for confirmation
- */
 function confirm(question: string): Promise<boolean> {
   const rl = readline.createInterface({
     input: process.stdin,
@@ -32,9 +23,6 @@ function confirm(question: string): Promise<boolean> {
   });
 }
 
-/**
- * Drop database
- */
 async function dropDatabase(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
   const skipConfirmation = process.argv.includes('--force') || process.argv.includes('-f');
@@ -48,7 +36,6 @@ async function dropDatabase(): Promise<void> {
     const adapter = registry.getAdapter(databaseUrl);
     console.log(`✓ Using adapter: ${adapter.name}`);
 
-    // Confirm before dropping
     if (!skipConfirmation) {
       const confirmed = await confirm(
         `⚠️  Are you sure you want to drop the database? (y/N): `
@@ -68,5 +55,4 @@ async function dropDatabase(): Promise<void> {
   }
 }
 
-// Run the script
 dropDatabase();

@@ -8,7 +8,6 @@ export interface PrismaFlareConfig {
   plurals?: Record<string, string>;
 }
 
-// Helper to find project root
 export function findProjectRoot(currentDir: string): string {
   if (fs.existsSync(path.join(currentDir, 'package.json'))) {
     return currentDir;
@@ -23,12 +22,12 @@ export function findProjectRoot(currentDir: string): string {
 export function loadConfig(): PrismaFlareConfig {
   const rootDir = findProjectRoot(process.cwd());
   const configPath = path.join(rootDir, 'prisma-flare.config.json');
-  
-  let config: PrismaFlareConfig = { 
-    modelsPath: 'src/models',
-    dbPath: 'src/db', // Default path to db instance
+
+  let config: PrismaFlareConfig = {
+    modelsPath: 'prisma/models',
+    dbPath: 'prisma/db',
   };
-  
+
   if (fs.existsSync(configPath)) {
     try {
       const configFile = fs.readFileSync(configPath, 'utf-8');

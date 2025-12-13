@@ -1,23 +1,14 @@
 #!/usr/bin/env node
-/**
- * Database migration utility
- * Runs Prisma migrations and generates the Prisma Client
- */
 
 import { execSync } from 'child_process';
 import * as dotenv from 'dotenv';
 import { generateQueries } from './generate-queries';
 import { loadConfig } from './config';
 
-// Load configuration
 const config = loadConfig();
 
-// Load environment variables
 dotenv.config({ path: config.envPath });
 
-/**
- * Run database migrations
- */
 function runMigrations(): void {
   const databaseUrl = process.env.DATABASE_URL;
 
@@ -28,17 +19,15 @@ function runMigrations(): void {
 
   try {
     console.log('🔄 Running Prisma migrations...');
-    
-    // Run prisma migrate dev
+
     const args = process.argv.slice(2).join(' ');
-    
-    // If we are in library dev, we might want to pass the schema, but let's respect user args too
+
     const command = `npx prisma migrate dev ${args}`;
-    
+
     console.log(`Running: ${command}`);
-    execSync(command, { 
+    execSync(command, {
       stdio: 'inherit',
-      env: process.env 
+      env: process.env
     });
 
     console.log('✓ Migrations completed successfully');
@@ -54,5 +43,4 @@ function runMigrations(): void {
   }
 }
 
-// Run the script
 runMigrations();

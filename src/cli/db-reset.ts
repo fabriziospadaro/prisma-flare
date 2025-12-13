@@ -1,23 +1,14 @@
 #!/usr/bin/env node
-/**
- * Database reset utility
- * Resets the database by dropping and recreating it, then running migrations
- */
 
 import { execSync } from 'child_process';
 import * as dotenv from 'dotenv';
 import * as readline from 'readline';
 import { loadConfig } from './config';
 
-// Load configuration
 const config = loadConfig();
 
-// Load environment variables
 dotenv.config({ path: config.envPath });
 
-/**
- * Prompt user for confirmation
- */
 function confirm(question: string): Promise<boolean> {
   const rl = readline.createInterface({
     input: process.stdin,
@@ -32,9 +23,6 @@ function confirm(question: string): Promise<boolean> {
   });
 }
 
-/**
- * Reset database
- */
 async function resetDatabase(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
   const skipConfirmation = process.argv.includes('--force') || process.argv.includes('-f');
@@ -45,7 +33,6 @@ async function resetDatabase(): Promise<void> {
   }
 
   try {
-    // Confirm before resetting
     if (!skipConfirmation) {
       const confirmed = await confirm(
         `⚠️  Are you sure you want to reset the database? This will delete all data! (y/N): `
@@ -59,7 +46,6 @@ async function resetDatabase(): Promise<void> {
 
     console.log('🔄 Resetting database...');
 
-    // Use Prisma's built-in reset command
     execSync('npx prisma migrate reset --force', {
       stdio: 'inherit',
       env: process.env,
@@ -73,5 +59,4 @@ async function resetDatabase(): Promise<void> {
   }
 }
 
-// Run the script
 resetDatabase();

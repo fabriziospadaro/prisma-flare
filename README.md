@@ -60,8 +60,8 @@ If your project structure is different, create a `prisma-flare.config.json` in y
 }
 ```
 
-- `modelsPath`: Where to generate the query classes (defaults to `src/models`).
-- `dbPath`: Path to the file exporting your `db` instance (relative to project root).
+- `modelsPath`: Where to generate the query classes (defaults to `prisma/models`).
+- `dbPath`: Path to the file exporting your `db` instance (relative to project root, defaults to `prisma/db`).
 - `envPath`: Path to your environment file (optional, defaults to `.env`).
 - `plurals`: Custom pluralization for model names (optional).
 

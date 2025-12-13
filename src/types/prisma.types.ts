@@ -28,11 +28,11 @@ export type ModelDelegate<T extends ModelName> = PrismaClient[T];
 export type PrismaArgs<
   T extends ModelName,
   A extends keyof ModelDelegate<T>
-> = ModelDelegate<T>[A] extends (args: infer Args) => any 
+> = ModelDelegate<T>[A] extends (args: infer Args) => any
   ? Args
-  : ModelDelegate<T>[A] extends (args?: infer Args) => any 
-    ? Args
-    : never;
+  : ModelDelegate<T>[A] extends (args?: infer Args) => any
+  ? Args
+  : never;
 
 /**
  * Extract the record type for a given model

@@ -14,7 +14,7 @@ export function loadCallbacks(callbacksDir?: string): void {
     // Default: try to load from callbacks directory relative to where this is called
     callbacksDir = path.join(process.cwd(), 'prisma', 'callbacks');
   }
-  
+
   // Check if directory exists
   if (!fs.existsSync(callbacksDir)) {
     console.warn(`Callbacks directory not found: ${callbacksDir}`);
@@ -30,9 +30,9 @@ export function loadCallbacks(callbacksDir?: string): void {
 }
 
 async function fetchAffectedRecords(
-  db: PrismaClient, 
-  model: ModelName, 
-  where: any, 
+  db: PrismaClient,
+  model: ModelName,
+  where: any,
   fields?: Record<string, true>
 ): Promise<any[]> {
   const delegate = db[model] as any;
@@ -59,7 +59,7 @@ export function registerHooks(prisma: PrismaClient): void {
 
     let prevData: any[] = [];
     let fields: Record<string, true> | undefined;
-    
+
     if (hasColumnHooks && (action === 'update' || action === 'updateMany')) {
       fields = hookRegistry.getRelevantFields(modelName);
       prevData = await fetchAffectedRecords(prisma, modelName, args.where, fields);
@@ -72,7 +72,7 @@ export function registerHooks(prisma: PrismaClient): void {
 
     if (hasColumnHooks && (action === 'update' || action === 'updateMany')) {
       let newData: any[] = [];
-      
+
       if (action === 'update') {
         newData = [result];
       } else {
@@ -86,7 +86,7 @@ export function registerHooks(prisma: PrismaClient): void {
       for (let i = 0; i < prevData.length; i++) {
         const prevRecord = prevData[i];
         const newRecord = newData.find(record => record.id === prevRecord.id);
-        
+
         if (newRecord) {
           hookRegistry.runColumnHooks(modelName, newRecord, prevRecord, prisma).catch(error => {
             console.error('Column hook error:', error);

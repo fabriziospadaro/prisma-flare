@@ -3,7 +3,6 @@ import * as path from 'path';
 import pluralize from 'pluralize';
 import { loadConfig, findProjectRoot } from './config';
 
-// Helper to convert PascalCase to camelCase
 function toCamelCase(str: string): string {
   return str.charAt(0).toLowerCase() + str.slice(1);
 }
@@ -32,11 +31,6 @@ export function generateQueries() {
     fs.mkdirSync(queriesDir, { recursive: true });
   }
 
-  // Calculate relative path to db
-  // We need to import 'db' from the user's project into the generated query files.
-  // config.dbPath is relative to rootDir (e.g. 'src/db')
-  // queriesDir is e.g. 'src/models'
-  
   const absDbPath = path.join(rootDir, config.dbPath);
   let relativePathToDb = path.relative(queriesDir, absDbPath);
   if (!relativePathToDb.startsWith('.')) relativePathToDb = './' + relativePathToDb;
@@ -53,17 +47,16 @@ export function generateQueries() {
     }
 
     console.log(`Generating ${queryFileName}...`);
-    
+
     let queryBuilderImport = "import { QueryBuilder } from 'prisma-flare';";
-    
+
     const localQueryBuilderPath = path.join(rootDir, 'src/core/queryBuilder.ts');
     if (fs.existsSync(localQueryBuilderPath)) {
-       // In library dev, we import from src to simulate package usage
-       const absSrcPath = path.join(rootDir, 'src');
-       let relativePathToSrc = path.relative(queriesDir, absSrcPath);
-       if (!relativePathToSrc.startsWith('.')) relativePathToSrc = './' + relativePathToSrc;
-       relativePathToSrc = relativePathToSrc.replace(/\\/g, '/');
-       queryBuilderImport = `import { QueryBuilder } from '${relativePathToSrc}';`;
+      const absSrcPath = path.join(rootDir, 'src');
+      let relativePathToSrc = path.relative(queriesDir, absSrcPath);
+      if (!relativePathToSrc.startsWith('.')) relativePathToSrc = './' + relativePathToSrc;
+      relativePathToSrc = relativePathToSrc.replace(/\\/g, '/');
+      queryBuilderImport = `import { QueryBuilder } from '${relativePathToSrc}';`;
     }
 
     const content = `import { db } from '${relativePathToDb}';
@@ -78,22 +71,11 @@ export default class ${model} extends QueryBuilder<'${modelCamel}'> {
     fs.writeFileSync(queryFilePath, content);
   });
 
-  // Update prisma-flare package in node_modules or local dist
   let pfDistDir: string;
 
-    const pfPackageDir = path.join(rootDir, 'node_modules', 'prisma-flare');
-    pfDistDir = path.join(pfPackageDir, 'dist');
+  const pfPackageDir = path.join(rootDir, 'node_modules', 'prisma-flare');
+  pfDistDir = path.join(pfPackageDir, 'dist');
 
-    if (!fs.existsSync(pfDistDir)) {
-      // If the package is not found, we are likely in the library repo itself or it's not installed.
-      // We silently skip without error, as this is expected during library development.
-      return;
-    }
-
-  // Calculate relative path from dist to db
-  // absDbPath is already defined in the outer scope
-  
-  // Detect extension if missing
   let dbPathWithExt = absDbPath;
   if (!absDbPath.endsWith('.ts') && !absDbPath.endsWith('.js')) {
     if (fs.existsSync(absDbPath + '.ts')) {
@@ -107,7 +89,6 @@ export default class ${model} extends QueryBuilder<'${modelCamel}'> {
   if (!relativePathToDbForDist.startsWith('.')) relativePathToDbForDist = './' + relativePathToDbForDist;
   relativePathToDbForDist = relativePathToDbForDist.replace(/\\/g, '/');
 
-  // Calculate relative path from dist to models
   const absModelsPath = path.join(queriesDir);
   let relativePathToModels = path.relative(pfDistDir, absModelsPath);
   if (!relativePathToModels.startsWith('.')) relativePathToModels = './' + relativePathToModels;
@@ -122,13 +103,10 @@ export default class ${model} extends QueryBuilder<'${modelCamel}'> {
   }`;
   }).join('\n\n');
 
-  // Update generated.js (ESM)
   const generatedJsPath = path.join(pfDistDir, 'generated.js');
   console.log(`Writing generated JS to: ${generatedJsPath}`);
-  
+
   const imports = models.map(model => {
-    // We generated .ts files, so we import them as .ts for tsx/vitest support
-    // In a real ESM build with tsc, this might need to be .js
     return `import ${model} from '${relativePathToModels}/${model}.ts';`;
   }).join('\n');
 
@@ -149,7 +127,7 @@ ${getters}
 
   // Update generated.cjs (CommonJS)
   const generatedCjsPath = path.join(pfDistDir, 'generated.cjs');
-  
+
   const importsCjs = models.map(model => {
     return `const ${model} = require('${relativePathToModels}/${model}').default;`;
   }).join('\n');
@@ -172,7 +150,7 @@ exports.DB = DB;
 
   // Update generated.d.ts
   const generatedDtsPath = path.join(pfDistDir, 'generated.d.ts');
-  
+
   const importsDts = models.map(model => {
     return `import ${model} from '${relativePathToModels}/${model}';`;
   }).join('\n');

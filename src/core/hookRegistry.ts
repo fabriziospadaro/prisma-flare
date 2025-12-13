@@ -1,7 +1,7 @@
-import type { 
-  HookTiming, 
-  PrismaOperation, 
-  BeforeHookCallback, 
+import type {
+  HookTiming,
+  PrismaOperation,
+  BeforeHookCallback,
   AfterHookCallback,
   ColumnChangeCallback,
   ModelName
@@ -12,11 +12,11 @@ class HookRegistry {
     before: Record<string, BeforeHookCallback[]>;
     after: Record<string, AfterHookCallback[]>;
   };
-  
+
   private columnHooks: {
     afterChange: Record<string, ColumnChangeCallback[]>;
   };
-  
+
   private fieldCache: Record<string, Record<string, true>>;
   private modelsWithColumnHooks: Set<string>;
 
@@ -33,9 +33,9 @@ class HookRegistry {
   }
 
   addHook(
-    model: ModelName, 
-    action: PrismaOperation, 
-    timing: HookTiming, 
+    model: ModelName,
+    action: PrismaOperation,
+    timing: HookTiming,
     fn: BeforeHookCallback | AfterHookCallback
   ): void {
     const key = `${model}:${action}`;
@@ -55,15 +55,15 @@ class HookRegistry {
   }
 
   async runHooks(
-    timing: HookTiming, 
-    model: ModelName, 
-    action: PrismaOperation, 
+    timing: HookTiming,
+    model: ModelName,
+    action: PrismaOperation,
     args: any[],
     prisma: any
   ): Promise<void> {
     const key = `${model}:${action}`;
     const hooks = this.hooks[timing]?.[key] ?? [];
-    
+
     if (timing === 'after') {
       await Promise.all(hooks.map(hook => (hook as any)(...args, prisma)));
     } else {
@@ -78,7 +78,7 @@ class HookRegistry {
     for (const column in newData) {
       const key = `${model}:${column}`;
       const hooks = this.columnHooks.afterChange[key];
-      
+
       if (hooks && newData[column] !== prevData[column]) {
         for (const hook of hooks) {
           promises.push(hook(prevData[column], newData[column], newData, prisma) as Promise<void>);
@@ -96,23 +96,23 @@ class HookRegistry {
     if (this.fieldCache[model]) {
       return this.fieldCache[model];
     }
-    
+
     const fields = new Set<string>();
-    
+
     for (const key of Object.keys(this.columnHooks.afterChange)) {
       if (key.startsWith(`${model}:`)) {
         const [, column] = key.split(':');
         fields.add(column);
       }
     }
-    
+
     fields.add('id'); // Ensure the ID field is always included for comparison
-    
+
     const result = Array.from(fields).reduce((acc, field) => {
       acc[field] = true;
       return acc;
     }, {} as Record<string, true>);
-    
+
     this.fieldCache[model] = result;
     return result;
   }

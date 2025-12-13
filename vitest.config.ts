@@ -11,6 +11,5 @@ export default defineConfig({
     isolate: true,
     fileParallelism: false,
     maxConcurrency: 1,
-    include: ['tests/integration-project.test.ts']
   },
 });

@@ -2,9 +2,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export interface PrismaFlareConfig {
-  queriesPath: string;
+  modelsPath: string;
   dbPath: string;
   envPath?: string;
+  plurals?: Record<string, string>;
   readonly isLibraryDev: boolean;
 }
 
@@ -29,7 +30,7 @@ export function loadConfig(): PrismaFlareConfig {
   const isLibraryDev = packageJson.name === 'prisma-flare';
 
   let config: Omit<PrismaFlareConfig, 'isLibraryDev'> = { 
-    queriesPath: 'src/queries',
+    modelsPath: 'src/models',
     dbPath: isLibraryDev ? 'src/core/db' : 'src/db', // Default path to db instance
   };
   

@@ -1,7 +1,7 @@
 import { db } from '../core/db';
 import QueryBuilder from '../core/queryBuilder';
 
-export default class UserQuery extends QueryBuilder<'user'> {
+export default class User extends QueryBuilder<'user'> {
   constructor() {
     super(db.user);
   }

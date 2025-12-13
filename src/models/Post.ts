@@ -1,7 +1,7 @@
 import { db } from '../core/db';
 import QueryBuilder from '../core/queryBuilder';
 
-export default class PostQuery extends QueryBuilder<'post'> {
+export default class Post extends QueryBuilder<'post'> {
   constructor() {
     super(db.post);
   }

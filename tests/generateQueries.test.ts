@@ -53,19 +53,27 @@ model Post {
 
     generateQueries();
 
-    const queriesDir = path.join(tempDir, 'src/queries');
+    const queriesDir = path.join(tempDir, 'src/models');
     expect(fs.existsSync(queriesDir)).toBe(true);
-    expect(fs.existsSync(path.join(queriesDir, 'UserQuery.ts'))).toBe(true);
-    expect(fs.existsSync(path.join(queriesDir, 'PostQuery.ts'))).toBe(true);
-    expect(fs.existsSync(path.join(queriesDir, 'index.ts'))).toBe(true);
-
-    const userQueryContent = fs.readFileSync(path.join(queriesDir, 'UserQuery.ts'), 'utf-8');
-    expect(userQueryContent).toContain("import { QueryBuilder } from 'prisma-flare';");
-    expect(userQueryContent).toContain("export default class UserQuery extends QueryBuilder<'user'> {");
+    expect(fs.existsSync(path.join(queriesDir, 'User.ts'))).toBe(true);
+    expect(fs.existsSync(path.join(queriesDir, 'Post.ts'))).toBe(true);
     
-    const indexContent = fs.readFileSync(path.join(queriesDir, 'index.ts'), 'utf-8');
-    expect(indexContent).toContain("import UserQuery from './UserQuery';");
-    expect(indexContent).toContain("static get user() {");
+    // Default registry path is now node_modules/.prisma-flare/index.ts
+    const registryPath = path.join(tempDir, 'node_modules/.prisma-flare/index.ts');
+    expect(fs.existsSync(registryPath)).toBe(true);
+
+    const userQueryContent = fs.readFileSync(path.join(queriesDir, 'User.ts'), 'utf-8');
+    expect(userQueryContent).toContain("import { QueryBuilder } from 'prisma-flare';");
+    expect(userQueryContent).toContain("export default class User extends QueryBuilder<'user'> {");
+    
+    const indexContent = fs.readFileSync(registryPath, 'utf-8');
+    // Check relative import from node_modules/.prisma-flare to src/models
+    // node_modules/.prisma-flare -> ../../src/models/User
+    expect(indexContent).toContain("import User from '../../src/models/User';");
+    expect(indexContent).toContain("export default class DB {");
+    expect(indexContent).toContain("static get instance() {");
+    expect(indexContent).toContain("return db;");
+    expect(indexContent).toContain("static get users() {");
   });
 
   it('should respect prisma-flare.config.json', () => {
@@ -77,7 +85,7 @@ model TestModel {
     fs.writeFileSync(path.join(tempDir, 'prisma', 'schema.prisma'), schemaContent);
     
     const config = {
-      queriesPath: 'lib/generated/queries',
+      modelsPath: 'lib/generated/queries',
       dbPath: 'src/database'
     };
     fs.writeFileSync(path.join(tempDir, 'prisma-flare.config.json'), JSON.stringify(config));
@@ -86,13 +94,40 @@ model TestModel {
 
     const queriesDir = path.join(tempDir, 'lib/generated/queries');
     expect(fs.existsSync(queriesDir)).toBe(true);
-    expect(fs.existsSync(path.join(queriesDir, 'TestModelQuery.ts'))).toBe(true);
+    expect(fs.existsSync(path.join(queriesDir, 'TestModel.ts'))).toBe(true);
     
-    const queryContent = fs.readFileSync(path.join(queriesDir, 'TestModelQuery.ts'), 'utf-8');
+    const queryContent = fs.readFileSync(path.join(queriesDir, 'TestModel.ts'), 'utf-8');
     // Check relative path to db
     // queriesDir is lib/generated/queries (depth 3)
     // dbPath is src/database (depth 2)
     // relative path should be ../../../src/database
     expect(queryContent).toContain("import { db } from '../../../src/database';");
   });
+
+  it('should support custom plurals from config', () => {
+    const schemaContent = `
+model Person {
+ id Int @id
+}
+`;
+   fs.writeFileSync(path.join(tempDir, 'prisma', 'schema.prisma'), schemaContent);
+   
+   const config = {
+     modelsPath: 'src/models',
+     dbPath: 'src/db',
+     plurals: {
+       Person: 'people'
+     }
+   };
+   fs.writeFileSync(path.join(tempDir, 'prisma-flare.config.json'), JSON.stringify(config));
+
+   generateQueries();
+
+   // Default registry path
+   const registryPath = path.join(tempDir, 'node_modules/.prisma-flare/index.ts');
+   const indexContent = fs.readFileSync(registryPath, 'utf-8');
+   
+   expect(indexContent).toContain("static get people() {");
+   expect(indexContent).not.toContain("static get persons() {");
+ });
 });

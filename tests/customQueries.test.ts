@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { db } from '../src/core/db';
-import Query from '../src/queries';
+import DB from '../src/models';
 import { cleanDatabase, disconnectPrisma } from './helpers';
 
 describe('Custom Queries Integration Tests', () => {
@@ -15,7 +15,7 @@ describe('Custom Queries Integration Tests', () => {
   describe('UserQuery', () => {
     it('should chain custom methods with standard methods', async () => {
       // Create test users
-      await Query.user.createMany({
+      await DB.users.createMany({
         data: [
           { email: 'alice@example.com', name: 'Alice Wonderland' },
           { email: 'bob@example.com', name: 'Bob Builder' },
@@ -24,7 +24,7 @@ describe('Custom Queries Integration Tests', () => {
       });
 
       // Test chaining: withName + order + limit
-      const users = await Query.user
+      const users = await DB.users
         .withName('Alice')
         .order({ name: 'asc' })
         .limit(1)
@@ -35,11 +35,11 @@ describe('Custom Queries Integration Tests', () => {
     });
 
     it('should use withEmail custom method', async () => {
-      await Query.user.create({
+      await DB.users.create({
         data: { email: 'target@example.com', name: 'Target' },
       });
 
-      const user = await Query.user
+      const user = await DB.users
         .withEmail('target@example.com')
         .findFirst();
 
@@ -51,11 +51,11 @@ describe('Custom Queries Integration Tests', () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       
-      await Query.user.create({
+      await DB.users.create({
         data: { email: 'new@example.com', name: 'New User' },
       });
 
-      const users = await Query.user
+      const users = await DB.users
         .createdAfter(yesterday)
         .findMany();
 
@@ -66,11 +66,11 @@ describe('Custom Queries Integration Tests', () => {
   describe('PostQuery', () => {
     it('should chain custom methods for posts', async () => {
       // Create user and posts
-      const user = await Query.user.create({
+      const user = await DB.users.create({
         data: { email: 'author@example.com', name: 'Author' },
       });
 
-      await Query.post.createMany({
+      await DB.posts.createMany({
         data: [
           { title: 'First Post', published: true, authorId: user.id },
           { title: 'Draft Post', published: false, authorId: user.id },
@@ -79,7 +79,7 @@ describe('Custom Queries Integration Tests', () => {
       });
 
       // Test chaining: published + withTitle
-      const publishedPosts = await Query.post
+      const publishedPosts = await DB.posts
         .published()
         .withTitle('First')
         .findMany();
@@ -88,7 +88,7 @@ describe('Custom Queries Integration Tests', () => {
       expect(publishedPosts[0].title).toBe('First Post');
 
       // Test chaining: drafts
-      const drafts = await Query.post
+      const drafts = await DB.posts
         .drafts()
         .withAuthorId(user.id)
         .findMany();
@@ -98,11 +98,11 @@ describe('Custom Queries Integration Tests', () => {
     });
 
     it('should use recent custom method', async () => {
-      const user = await Query.user.create({
+      const user = await DB.users.create({
         data: { email: 'recent@example.com', name: 'Recent' },
       });
 
-      await Query.post.create({
+      await DB.posts.create({
         data: { 
           title: 'Recent Post', 
           published: true, 
@@ -110,7 +110,7 @@ describe('Custom Queries Integration Tests', () => {
         },
       });
 
-      const posts = await Query.post
+      const posts = await DB.posts
         .recent(1)
         .findMany();
 

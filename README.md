@@ -46,7 +46,7 @@ Run the generator to create type-safe query classes for your specific schema.
 npx prisma-flare generate
 ```
 
-By default, this will look for your `db` instance in `src/db` and output queries to `src/queries`.
+By default, this will look for your `db` instance in `src/db` and output queries to `src/models`.
 
 ### 3. Configuration (Optional)
 
@@ -54,27 +54,39 @@ If your project structure is different, create a `prisma-flare.config.json` in y
 
 ```json
 {
-  "queriesPath": "src/queries",
+  "modelsPath": "src/models",
   "dbPath": "src/lib/db",
   "envPath": ".env.local"
 }
 ```
 
-- `queriesPath`: Where to generate the query classes.
+- `modelsPath`: Where to generate the query classes (defaults to `src/models`).
 - `dbPath`: Path to the file exporting your `db` instance (relative to project root).
 - `envPath`: Path to your environment file (optional, defaults to `.env`).
+- `plurals`: Custom pluralization for model names (optional).
+
+Example with custom plurals:
+
+```json
+{
+  "plurals": {
+    "Person": "people",
+    "Equipment": "equipment"
+  }
+}
+```
 
 ## Usage
 
 ### Query Builder
 
-Once generated, you can import the `Query` class to access chainable methods for your models.
+Once generated, you can import the `DB` class to access chainable methods for your models.
 
 ```typescript
-import Query from './src/queries'; // Path to your generated queries
+import DB from '.prisma-flare'; // Import from the generated module
 
 // Chainable query builder with full type safety
-const posts = await Query.post
+const posts = await DB.posts
   .where({ published: true })
   .order({ createdAt: 'desc' })
   .limit(10)
@@ -82,19 +94,22 @@ const posts = await Query.post
   .findMany();
 
 // Complex filtering made easy
-const activeUsers = await Query.user
+const activeUsers = await DB.users
   .where({ isActive: true })
   .where({ role: 'ADMIN' })
   .count();
 
 // Pagination
-const { data, meta } = await Query.user.paginate(1, 15);
+const { data, meta } = await DB.users.paginate(1, 15);
 
 // Conditional queries
 const search = 'John';
-const users = await Query.user
+const users = await DB.users
   .when(!!search, (q) => q.where({ name: { contains: search } }))
   .findMany();
+
+// Access raw Prisma Client instance
+const rawDb = DB.instance;
 ```
 
 ### Callhooks & Middleware
@@ -160,11 +175,11 @@ dbAdapterRegistry.register(myAdapter);
 You can extend the generated query classes with custom methods for your domain-specific needs. Simply add methods to your query class that use the built-in `where()` method to build conditions.
 
 ```typescript
-// src/queries/PostQuery.ts
+// src/models/Post.ts
 import { db } from '../core/db';
 import QueryBuilder from '../core/queryBuilder';
 
-export default class PostQuery extends QueryBuilder<'post'> {
+export default class Post extends QueryBuilder<'post'> {
   constructor() {
     super(db.post);
   }
@@ -206,16 +221,16 @@ export default class PostQuery extends QueryBuilder<'post'> {
 Then use your custom methods in queries:
 
 ```typescript
-import Query from './src/queries';
+import DB from './src/models';
 
 // Use custom methods with full chainability
-const recentPublished = await Query.post
+const recentPublished = await DB.post
   .published()
   .recent(7)
   .order({ createdAt: 'desc' })
   .findMany();
 
-const authorPosts = await Query.post
+const authorPosts = await DB.post
   .withAuthorId(123)
   .withTitle('TypeScript')
   .include({ author: true })

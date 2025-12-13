@@ -6,9 +6,13 @@
 
 import * as dotenv from 'dotenv';
 import { registry } from '../core/adapters';
+import { loadConfig } from './config';
+
+// Load configuration
+const config = loadConfig();
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: config.envPath });
 
 /**
  * Create database

@@ -1,44 +1,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { loadConfig, findProjectRoot } from './config';
 
 // Helper to convert PascalCase to camelCase
 function toCamelCase(str: string): string {
   return str.charAt(0).toLowerCase() + str.slice(1);
 }
 
-// Helper to find project root
-function findProjectRoot(currentDir: string): string {
-  if (fs.existsSync(path.join(currentDir, 'package.json'))) {
-    return currentDir;
-  }
-  const parentDir = path.dirname(currentDir);
-  if (parentDir === currentDir) {
-    throw new Error('Could not find package.json');
-  }
-  return findProjectRoot(parentDir);
-}
-
 export function generateQueries() {
   const rootDir = findProjectRoot(process.cwd());
-  const configPath = path.join(rootDir, 'prisma-flare.config.json');
-  
-  const packageJsonPath = path.join(rootDir, 'package.json');
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-  const isLibraryDev = packageJson.name === 'prisma-flare';
-
-  let config = { 
-    queriesPath: 'src/queries',
-    dbPath: isLibraryDev ? 'src/core/db' : 'src/db' // Default path to db instance
-  };
-  
-  if (fs.existsSync(configPath)) {
-    try {
-      const configFile = fs.readFileSync(configPath, 'utf-8');
-      config = { ...config, ...JSON.parse(configFile) };
-    } catch {
-      console.warn('⚠️ Could not read prisma-flare.config.json, using defaults.');
-    }
-  }
+  const config = loadConfig();
 
   const schemaPath = path.join(rootDir, 'prisma', 'schema.prisma');
   if (!fs.existsSync(schemaPath)) {
@@ -85,7 +56,7 @@ export function generateQueries() {
     
     // Only use relative import if we are developing the library AND the file exists
     const localQueryBuilderPath = path.join(rootDir, 'src/core/queryBuilder.ts');
-    if (isLibraryDev && fs.existsSync(localQueryBuilderPath)) {
+    if (config.isLibraryDev && fs.existsSync(localQueryBuilderPath)) {
        // In library dev, we import from core
        // queriesDir is src/queries
        // QueryBuilder is in src/core/queryBuilder

@@ -55,12 +55,14 @@ If your project structure is different, create a `prisma-flare.config.json` in y
 ```json
 {
   "queriesPath": "src/queries",
-  "dbPath": "src/lib/db"
+  "dbPath": "src/lib/db",
+  "envPath": ".env.local"
 }
 ```
 
 - `queriesPath`: Where to generate the query classes.
 - `dbPath`: Path to the file exporting your `db` instance (relative to project root).
+- `envPath`: Path to your environment file (optional, defaults to `.env`).
 
 ## Usage
 

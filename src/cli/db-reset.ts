@@ -7,9 +7,13 @@
 import { execSync } from 'child_process';
 import * as dotenv from 'dotenv';
 import * as readline from 'readline';
+import { loadConfig } from './config';
+
+// Load configuration
+const config = loadConfig();
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: config.envPath });
 
 /**
  * Prompt user for confirmation

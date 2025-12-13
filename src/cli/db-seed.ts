@@ -6,9 +6,13 @@
 
 import { execSync } from 'child_process';
 import * as dotenv from 'dotenv';
+import { loadConfig } from './config';
+
+// Load configuration
+const config = loadConfig();
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: config.envPath });
 
 /**
  * Run database seed

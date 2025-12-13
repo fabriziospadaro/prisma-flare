@@ -4,7 +4,7 @@ import type { PrismaClient } from '@prisma/client';
  * Extract model names from PrismaClient
  */
 export type ModelName = Exclude<
-  keyof PrismaClient,
+  Extract<keyof PrismaClient, string>,
   | '$connect'
   | '$disconnect'
   | '$on'
@@ -15,7 +15,6 @@ export type ModelName = Exclude<
   | '$executeRawUnsafe'
   | '$queryRaw'
   | '$queryRawUnsafe'
-  | symbol
 >;
 
 /**

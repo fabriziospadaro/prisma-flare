@@ -38,7 +38,7 @@ class HookRegistry {
     timing: HookTiming, 
     fn: BeforeHookCallback | AfterHookCallback
   ): void {
-    const key = `${String(model)}:${action}`;
+    const key = `${model}:${action}`;
     if (!this.hooks[timing][key]) {
       this.hooks[timing][key] = [];
     }
@@ -46,12 +46,12 @@ class HookRegistry {
   }
 
   addColumnHook(model: ModelName, column: string, fn: ColumnChangeCallback): void {
-    const key = `${String(model)}:${column}`;
+    const key = `${model}:${column}`;
     if (!this.columnHooks.afterChange[key]) {
       this.columnHooks.afterChange[key] = [];
     }
     this.columnHooks.afterChange[key].push(fn);
-    this.modelsWithColumnHooks.add(String(model));
+    this.modelsWithColumnHooks.add(model);
   }
 
   async runHooks(
@@ -61,7 +61,7 @@ class HookRegistry {
     args: any[],
     prisma: any
   ): Promise<void> {
-    const key = `${String(model)}:${action}`;
+    const key = `${model}:${action}`;
     const hooks = this.hooks[timing]?.[key] ?? [];
     
     if (timing === 'after') {
@@ -75,9 +75,8 @@ class HookRegistry {
 
   async runColumnHooks(model: ModelName, newData: any, prevData: any, prisma: any): Promise<void> {
     const promises: Promise<void>[] = [];
-    const modelStr = String(model);
     for (const column in newData) {
-      const key = `${modelStr}:${column}`;
+      const key = `${model}:${column}`;
       const hooks = this.columnHooks.afterChange[key];
       
       if (hooks && newData[column] !== prevData[column]) {
@@ -90,19 +89,18 @@ class HookRegistry {
   }
 
   hasColumnHooks(model: ModelName): boolean {
-    return this.modelsWithColumnHooks.has(String(model));
+    return this.modelsWithColumnHooks.has(model);
   }
 
   getRelevantFields(model: ModelName): Record<string, true> {
-    const modelStr = String(model);
-    if (this.fieldCache[modelStr]) {
-      return this.fieldCache[modelStr];
+    if (this.fieldCache[model]) {
+      return this.fieldCache[model];
     }
     
     const fields = new Set<string>();
     
     for (const key of Object.keys(this.columnHooks.afterChange)) {
-      if (key.startsWith(`${modelStr}:`)) {
+      if (key.startsWith(`${model}:`)) {
         const [, column] = key.split(':');
         fields.add(column);
       }
@@ -115,7 +113,7 @@ class HookRegistry {
       return acc;
     }, {} as Record<string, true>);
     
-    this.fieldCache[modelStr] = result;
+    this.fieldCache[model] = result;
     return result;
   }
 

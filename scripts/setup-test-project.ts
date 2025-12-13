@@ -9,15 +9,26 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const testProjectDir = path.join(rootDir, 'tests', 'test-project');
 
+function runSilent(command: string, cwd: string) {
+  try {
+    execSync(command, { cwd, stdio: 'pipe' });
+  } catch (error: any) {
+    console.error(`Command failed: ${command}`);
+    if (error.stdout) console.error(error.stdout.toString());
+    if (error.stderr) console.error(error.stderr.toString());
+    throw error;
+  }
+}
+
 try {
   console.log('Building prisma-flare...');
-  execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
+  runSilent('npm run build', rootDir);
 
   console.log('Packing prisma-flare...');
-  execSync('npm pack', { cwd: rootDir, stdio: 'inherit' });
+  runSilent('npm pack', rootDir);
 
   console.log('Installing dependencies in test-project...');
-  execSync('npm install --no-package-lock', { cwd: testProjectDir, stdio: 'inherit' });
+  runSilent('npm install --no-package-lock', testProjectDir);
 
   const files = fs.readdirSync(rootDir);
   const tgzFile = files.find(file => file.startsWith('prisma-flare-') && file.endsWith('.tgz'));
@@ -29,11 +40,11 @@ try {
   const tgzPath = path.join(rootDir, tgzFile);
 
   console.log(`Installing ${tgzPath} in test-project...`);
-  execSync(`npm install --no-save ${tgzPath}`, { cwd: testProjectDir, stdio: 'inherit' });
+  runSilent(`npm install --no-save ${tgzPath}`, testProjectDir);
 
   console.log('Generating Prisma Flare queries...');
-  execSync('npm run generate', { cwd: testProjectDir, stdio: 'inherit' });
+  runSilent('npm run generate', testProjectDir);
 } catch (error) {
-  console.error('Setup failed:', error);
+  console.error('Setup failed');
   process.exit(1);
 }

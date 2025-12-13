@@ -12,9 +12,7 @@ export function generateQueries() {
   const rootDir = findProjectRoot(process.cwd());
   const config = loadConfig();
 
-  const schemaPath = config.isLibraryDev 
-    ? path.join(rootDir, 'tests', 'prisma', 'schema.prisma')
-    : path.join(rootDir, 'prisma', 'schema.prisma');
+  const schemaPath = path.join(rootDir, 'prisma', 'schema.prisma');
 
   if (!fs.existsSync(schemaPath)) {
     console.error(`❌ Schema not found at ${schemaPath}`);
@@ -58,9 +56,8 @@ export function generateQueries() {
     
     let queryBuilderImport = "import { QueryBuilder } from 'prisma-flare';";
     
-    // Only use relative import if we are developing the library AND the file exists
     const localQueryBuilderPath = path.join(rootDir, 'src/core/queryBuilder.ts');
-    if (config.isLibraryDev && fs.existsSync(localQueryBuilderPath)) {
+    if (fs.existsSync(localQueryBuilderPath)) {
        // In library dev, we import from src to simulate package usage
        const absSrcPath = path.join(rootDir, 'src');
        let relativePathToSrc = path.relative(queriesDir, absSrcPath);
@@ -84,12 +81,6 @@ export default class ${model} extends QueryBuilder<'${modelCamel}'> {
   // Update prisma-flare package in node_modules or local dist
   let pfDistDir: string;
 
-  if (config.isLibraryDev) {
-    pfDistDir = path.join(rootDir, 'dist');
-    if (!fs.existsSync(pfDistDir)) {
-      fs.mkdirSync(pfDistDir, { recursive: true });
-    }
-  } else {
     const pfPackageDir = path.join(rootDir, 'node_modules', 'prisma-flare');
     pfDistDir = path.join(pfPackageDir, 'dist');
 
@@ -98,7 +89,6 @@ export default class ${model} extends QueryBuilder<'${modelCamel}'> {
       // We silently skip without error, as this is expected during library development.
       return;
     }
-  }
 
   // Calculate relative path from dist to db
   // absDbPath is already defined in the outer scope

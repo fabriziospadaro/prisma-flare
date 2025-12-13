@@ -2,6 +2,7 @@
 import { generateQueries } from './generate-queries';
 import { spawn } from 'child_process';
 import * as path from 'path';
+import * as fs from 'fs';
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -62,7 +63,15 @@ function runScript(scriptName: string) {
   // Actually, if we publish this, we publish JS files in dist/.
   // So we should run the JS versions in dist/cli/.
   
-  const scriptPath = path.join(__dirname, file.replace('.ts', '.js'));
+  let scriptPath = path.join(__dirname, file.replace('.ts', '.js'));
+
+  // Fix for tsup code splitting moving __dirname to root dist folder
+  if (!fs.existsSync(scriptPath)) {
+    const cliScriptPath = path.join(__dirname, 'cli', file.replace('.ts', '.js'));
+    if (fs.existsSync(cliScriptPath)) {
+      scriptPath = cliScriptPath;
+    }
+  }
   
   // If we are in dev (ts-node/tsx), we might need the .ts file
   // But standard practice is to run the compiled .js file.

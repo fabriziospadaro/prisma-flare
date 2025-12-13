@@ -25,8 +25,11 @@ describe('Integration Project Test', () => {
     execSync('npm install --no-package-lock', { cwd: testProjectDir, stdio: 'inherit' });
 
     // Install the packed local package
-    const tgzPath = path.join(rootDir, 'prisma-flare.tgz');
-    if (!fs.existsSync(tgzPath)) throw new Error('Packed tarball not found');
+    const files = fs.readdirSync(rootDir);
+    const tgzFile = files.find(file => file.startsWith('prisma-flare-') && file.endsWith('.tgz'));
+    
+    if (!tgzFile) throw new Error('Packed tarball not found');
+    const tgzPath = path.join(rootDir, tgzFile);
     
     console.log(`Installing ${tgzPath} in test-project...`);
     execSync(`npm install --no-save ${tgzPath}`, { cwd: testProjectDir, stdio: 'inherit' });

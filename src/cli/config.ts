@@ -6,7 +6,6 @@ export interface PrismaFlareConfig {
   dbPath: string;
   envPath?: string;
   plurals?: Record<string, string>;
-  readonly isLibraryDev: boolean;
 }
 
 // Helper to find project root
@@ -25,13 +24,9 @@ export function loadConfig(): PrismaFlareConfig {
   const rootDir = findProjectRoot(process.cwd());
   const configPath = path.join(rootDir, 'prisma-flare.config.json');
   
-  const packageJsonPath = path.join(rootDir, 'package.json');
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-  const isLibraryDev = packageJson.name === 'prisma-flare';
-
-  let config: Omit<PrismaFlareConfig, 'isLibraryDev'> = { 
-    modelsPath: isLibraryDev ? 'tests/generated/models' : 'src/models',
-    dbPath: isLibraryDev ? 'tests/db' : 'src/db', // Default path to db instance
+  let config: PrismaFlareConfig = { 
+    modelsPath: 'src/models',
+    dbPath: 'src/db', // Default path to db instance
   };
   
   if (fs.existsSync(configPath)) {
@@ -45,7 +40,6 @@ export function loadConfig(): PrismaFlareConfig {
   }
 
   return {
-    ...config,
-    isLibraryDev
+    ...config
   };
 }

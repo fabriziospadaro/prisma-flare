@@ -80,28 +80,31 @@ export default class ${model} extends QueryBuilder<'${modelCamel}'> {
     fs.writeFileSync(queryFilePath, content);
   });
 
-  // Update registry file (always in node_modules/.prisma-flare/index.ts)
-  const registryPath = 'node_modules/.prisma-flare/index.ts';
-  const absRegistryPath = path.join(rootDir, registryPath);
-  const registryDir = path.dirname(absRegistryPath);
-
-  if (!fs.existsSync(registryDir)) {
-    fs.mkdirSync(registryDir, { recursive: true });
+  // Update prisma-flare package in node_modules
+  if (config.isLibraryDev) {
+    console.log('Skipping package update in library dev mode');
+    return;
   }
 
-  // Calculate relative path from registry to db
-  let relativePathToDbFromRegistry = path.relative(registryDir, absDbPath);
-  if (!relativePathToDbFromRegistry.startsWith('.')) relativePathToDbFromRegistry = './' + relativePathToDbFromRegistry;
-  relativePathToDbFromRegistry = relativePathToDbFromRegistry.replace(/\\/g, '/');
+  const pfPackageDir = path.join(rootDir, 'node_modules', 'prisma-flare');
+  const pfDistDir = path.join(pfPackageDir, 'dist');
 
-  // Calculate relative path from registry to models
-  const imports = models.map(model => {
-    const absModelPath = path.join(queriesDir, model);
-    let relativePathToModel = path.relative(registryDir, absModelPath);
-    if (!relativePathToModel.startsWith('.')) relativePathToModel = './' + relativePathToModel;
-    relativePathToModel = relativePathToModel.replace(/\\/g, '/');
-    return `import ${model} from '${relativePathToModel}';`;
-  }).join('\n');
+  if (!fs.existsSync(pfDistDir)) {
+    console.warn('⚠️ Could not find prisma-flare dist directory. Skipping DB export generation.');
+    return;
+  }
+
+  // Calculate relative path from dist to db
+  // absDbPath is already defined in the outer scope
+  let relativePathToDbForDist = path.relative(pfDistDir, absDbPath);
+  if (!relativePathToDbForDist.startsWith('.')) relativePathToDbForDist = './' + relativePathToDbForDist;
+  relativePathToDbForDist = relativePathToDbForDist.replace(/\\/g, '/');
+
+  // Calculate relative path from dist to models
+  const absModelsPath = path.join(queriesDir);
+  let relativePathToModels = path.relative(pfDistDir, absModelsPath);
+  if (!relativePathToModels.startsWith('.')) relativePathToModels = './' + relativePathToModels;
+  relativePathToModels = relativePathToModels.replace(/\\/g, '/');
 
   const getters = models.map(model => {
     const modelCamel = toCamelCase(model);
@@ -112,10 +115,26 @@ export default class ${model} extends QueryBuilder<'${modelCamel}'> {
   }`;
   }).join('\n\n');
 
-  const indexContent = `import { db } from '${relativePathToDbFromRegistry}';
+  const injectionMarker = '// --- PRISMA-FLARE-GENERATED ---';
+
+  // Update index.js (ESM)
+  const indexJsPath = path.join(pfDistDir, 'index.js');
+  if (fs.existsSync(indexJsPath)) {
+    let content = fs.readFileSync(indexJsPath, 'utf-8');
+    if (content.includes(injectionMarker)) {
+      content = content.split(injectionMarker)[0];
+    }
+
+    const imports = models.map(model => {
+      return `import ${model} from '${relativePathToModels}/${model}';`;
+    }).join('\n');
+
+    const newContent = `${content}
+${injectionMarker}
+import { db } from '${relativePathToDbForDist}';
 ${imports}
 
-export default class DB {
+export class DB {
   static get instance() {
     return db;
   }
@@ -123,21 +142,73 @@ export default class DB {
 ${getters}
 }
 `;
+    fs.writeFileSync(indexJsPath, newContent);
+    console.log('Updated prisma-flare/dist/index.js');
+  }
 
-  console.log(`Updating ${registryPath}...`);
-  fs.writeFileSync(absRegistryPath, indexContent);
-
-  // If writing to node_modules, generate a package.json to allow importing as a module
-  if (registryPath.includes('node_modules')) {
-    const packageJsonPath = path.join(registryDir, 'package.json');
-    if (!fs.existsSync(packageJsonPath)) {
-      const pkgContent = {
-        name: ".prisma-flare",
-        types: "index.ts",
-        main: "index.ts"
-      };
-      fs.writeFileSync(packageJsonPath, JSON.stringify(pkgContent, null, 2));
+  // Update index.cjs (CommonJS)
+  const indexCjsPath = path.join(pfDistDir, 'index.cjs');
+  if (fs.existsSync(indexCjsPath)) {
+    let content = fs.readFileSync(indexCjsPath, 'utf-8');
+    if (content.includes(injectionMarker)) {
+      content = content.split(injectionMarker)[0];
     }
+
+    const imports = models.map(model => {
+      return `const ${model} = require('${relativePathToModels}/${model}').default;`;
+    }).join('\n');
+
+    const newContent = `${content}
+${injectionMarker}
+const { db } = require('${relativePathToDbForDist}');
+${imports}
+
+class DB {
+  static get instance() {
+    return db;
+  }
+
+${getters}
+}
+exports.DB = DB;
+`;
+    fs.writeFileSync(indexCjsPath, newContent);
+    console.log('Updated prisma-flare/dist/index.cjs');
+  }
+
+  // Update index.d.ts
+  const indexDtsPath = path.join(pfDistDir, 'index.d.ts');
+  if (fs.existsSync(indexDtsPath)) {
+    let content = fs.readFileSync(indexDtsPath, 'utf-8');
+    if (content.includes(injectionMarker)) {
+      content = content.split(injectionMarker)[0];
+    }
+
+    const imports = models.map(model => {
+      return `import ${model} from '${relativePathToModels}/${model}';`;
+    }).join('\n');
+
+    const gettersTypes = models.map(model => {
+      const modelCamel = toCamelCase(model);
+      const customPlural = config.plurals?.[model];
+      const modelPlural = customPlural || pluralize(modelCamel);
+      return `  static get ${modelPlural}(): ${model};`;
+    }).join('\n');
+
+    const newContent = `${content}
+${injectionMarker}
+import { db } from '${relativePathToDbForDist}';
+${imports}
+
+export declare class DB {
+  static get instance(): typeof db;
+
+${gettersTypes}
+}
+`;
+    fs.writeFileSync(indexDtsPath, newContent);
+    console.log('Updated prisma-flare/dist/index.d.ts');
   }
 }
+
 

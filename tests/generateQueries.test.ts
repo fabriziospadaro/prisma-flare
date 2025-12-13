@@ -16,6 +16,13 @@ describe('generateQueries', () => {
     
     // Mock process.cwd to return tempDir
     vi.spyOn(process, 'cwd').mockReturnValue(tempDir);
+
+    // Mock node_modules/prisma-flare/dist
+    const pfDistDir = path.join(tempDir, 'node_modules', 'prisma-flare', 'dist');
+    fs.mkdirSync(pfDistDir, { recursive: true });
+    fs.writeFileSync(path.join(pfDistDir, 'index.js'), "export const version = '1.0.0';\n");
+    fs.writeFileSync(path.join(pfDistDir, 'index.cjs'), "exports.version = '1.0.0';\n");
+    fs.writeFileSync(path.join(pfDistDir, 'index.d.ts'), "export declare const version: string;\n");
   });
 
   afterEach(() => {
@@ -58,19 +65,18 @@ model Post {
     expect(fs.existsSync(path.join(queriesDir, 'User.ts'))).toBe(true);
     expect(fs.existsSync(path.join(queriesDir, 'Post.ts'))).toBe(true);
     
-    // Default registry path is now node_modules/.prisma-flare/index.ts
-    const registryPath = path.join(tempDir, 'node_modules/.prisma-flare/index.ts');
-    expect(fs.existsSync(registryPath)).toBe(true);
-
     const userQueryContent = fs.readFileSync(path.join(queriesDir, 'User.ts'), 'utf-8');
     expect(userQueryContent).toContain("import { QueryBuilder } from 'prisma-flare';");
     expect(userQueryContent).toContain("export default class User extends QueryBuilder<'user'> {");
     
-    const indexContent = fs.readFileSync(registryPath, 'utf-8');
-    // Check relative import from node_modules/.prisma-flare to src/models
-    // node_modules/.prisma-flare -> ../../src/models/User
-    expect(indexContent).toContain("import User from '../../src/models/User';");
-    expect(indexContent).toContain("export default class DB {");
+    // Check injection in node_modules/prisma-flare/dist/index.js
+    const indexJsPath = path.join(tempDir, 'node_modules/prisma-flare/dist/index.js');
+    const indexContent = fs.readFileSync(indexJsPath, 'utf-8');
+    
+    // Check relative import from node_modules/prisma-flare/dist to src/models
+    // node_modules/prisma-flare/dist -> ../../../src/models/User
+    expect(indexContent).toContain("import User from '../../../src/models/User';");
+    expect(indexContent).toContain("export class DB {");
     expect(indexContent).toContain("static get instance() {");
     expect(indexContent).toContain("return db;");
     expect(indexContent).toContain("static get users() {");
@@ -123,9 +129,9 @@ model Person {
 
    generateQueries();
 
-   // Default registry path
-   const registryPath = path.join(tempDir, 'node_modules/.prisma-flare/index.ts');
-   const indexContent = fs.readFileSync(registryPath, 'utf-8');
+   // Check injection in node_modules/prisma-flare/dist/index.js
+   const indexJsPath = path.join(tempDir, 'node_modules/prisma-flare/dist/index.js');
+   const indexContent = fs.readFileSync(indexJsPath, 'utf-8');
    
    expect(indexContent).toContain("static get people() {");
    expect(indexContent).not.toContain("static get persons() {");

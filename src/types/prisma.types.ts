@@ -218,3 +218,33 @@ export interface PaginatedResult<T> {
   };
 }
 
+export type PrismaAction =
+  | 'findUnique'
+  | 'findUniqueOrThrow'
+  | 'findMany'
+  | 'findFirst'
+  | 'findFirstOrThrow'
+  | 'create'
+  | 'createMany'
+  | 'update'
+  | 'updateMany'
+  | 'upsert'
+  | 'delete'
+  | 'deleteMany'
+  | 'groupBy'
+  | 'count'
+  | 'aggregate'
+  | 'findRaw'
+  | 'aggregateRaw'
+  | 'executeRaw'
+  | 'queryRaw'
+  | 'runCommandRaw';
+
+export type PrismaMiddlewareParams = {
+  model?: string;
+  action: PrismaAction;
+  args: any;
+  dataPath: string[];
+  runInTransaction: boolean;
+};
+

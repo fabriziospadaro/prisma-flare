@@ -1,6 +1,6 @@
 import hookRegistry from './hookRegistry';
-import type { PrismaClient, Prisma } from '@prisma/client';
-import type { ModelName } from '../types';
+import type { PrismaClient } from '@prisma/client';
+import type { ModelName, PrismaMiddlewareParams } from '../types';
 import fs from 'fs';
 import path from 'path';
 
@@ -46,8 +46,8 @@ async function fetchAffectedRecords(
 }
 
 export function registerHooks(prisma: PrismaClient): void {
-  prisma.$use(async (params: Prisma.MiddlewareParams, next: (params: Prisma.MiddlewareParams) => Promise<any>) => {
-    const { model, action, args } = params;
+  prisma.$use(async (params: any, next: (params: any) => Promise<any>) => {
+    const { model, action, args } = params as PrismaMiddlewareParams;
 
     if (!model) {
       return next(params);

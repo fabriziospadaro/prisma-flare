@@ -33,5 +33,6 @@ export type {
   ColumnChangeCallback,
   AggregateResult,
   QueryArgs,
-  PaginatedResult
+  PaginatedResult,
+  PrismaMiddlewareParams
 } from './prisma.types';

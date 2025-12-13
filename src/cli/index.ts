@@ -10,11 +10,11 @@ if (!command) {
   console.log('Usage: prisma-flare <command>');
   console.log('Commands:');
   console.log('  generate    Generate query classes based on schema.prisma');
-  console.log('  db:create   Create the database');
-  console.log('  db:drop     Drop the database');
-  console.log('  db:migrate  Migrate the database');
-  console.log('  db:reset    Reset the database');
-  console.log('  db:seed     Seed the database');
+  console.log('  create      Create the database');
+  console.log('  drop        Drop the database');
+  console.log('  migrate     Migrate the database');
+  console.log('  reset       Reset the database');
+  console.log('  seed        Seed the database');
   process.exit(1);
 }
 
@@ -22,11 +22,11 @@ switch (command) {
   case 'generate':
     generateQueries();
     break;
-  case 'db:create':
-  case 'db:drop':
-  case 'db:migrate':
-  case 'db:reset':
-  case 'db:seed':
+  case 'create':
+  case 'drop':
+  case 'migrate':
+  case 'reset':
+  case 'seed':
     runScript(command);
     break;
   default:
@@ -37,11 +37,11 @@ switch (command) {
 function runScript(scriptName: string) {
   // Map command to file
   const scriptMap: Record<string, string> = {
-    'db:create': 'db-create.ts',
-    'db:drop': 'db-drop.ts',
-    'db:migrate': 'db-migrate.ts',
-    'db:reset': 'db-reset.ts',
-    'db:seed': 'db-seed.ts',
+    'create': 'db-create.ts',
+    'drop': 'db-drop.ts',
+    'migrate': 'db-migrate.ts',
+    'reset': 'db-reset.ts',
+    'seed': 'db-seed.ts',
   };
 
   const file = scriptMap[scriptName];

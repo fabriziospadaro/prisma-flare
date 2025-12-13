@@ -19,11 +19,11 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "db:create": "tsx src/cli/db-create.ts",
-    "db:drop": "tsx src/cli/db-drop.ts",
-    "db:migrate": "tsx src/cli/db-migrate.ts",
-    "db:reset": "tsx src/cli/db-reset.ts",
-    "db:seed": "tsx src/cli/db-seed.ts"
+    "create": "tsx src/cli/db-create.ts",
+    "drop": "tsx src/cli/db-drop.ts",
+    "migrate": "tsx src/cli/db-migrate.ts",
+    "reset": "tsx src/cli/db-reset.ts",
+    "seed": "tsx src/cli/db-seed.ts"
   },
   "keywords": [
     "prisma",

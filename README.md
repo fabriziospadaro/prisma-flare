@@ -131,11 +131,11 @@ Prisma Flare comes with a suite of CLI tools to manage your database workflow. I
 
 ```bash
 npx prisma-flare generate   # Generate query classes from schema
-npx prisma-flare db:create  # Create database
-npx prisma-flare db:drop    # Drop database
-npx prisma-flare db:migrate # Run migrations
-npx prisma-flare db:reset   # Reset database
-npx prisma-flare db:seed    # Seed database
+npx prisma-flare create     # Create database
+npx prisma-flare drop       # Drop database
+npx prisma-flare migrate    # Run migrations
+npx prisma-flare reset      # Reset database
+npx prisma-flare seed       # Seed database
 ```
 
 ### Custom Database Adapters

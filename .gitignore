@@ -9,3 +9,5 @@ dist/
 prisma/migrations/
 *.tsbuildinfo
 .vscode/
+tests/generated/
+*.tgz

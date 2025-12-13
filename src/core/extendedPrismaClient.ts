@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import QueryBuilder from './queryBuilder';
 import type { ModelName, ModelDelegate } from '../types';
 
-export default class ExtendedPrismaClient extends PrismaClient {
+export class ExtendedPrismaClient extends PrismaClient {
   constructor() {
     super();
   }

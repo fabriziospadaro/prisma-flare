@@ -1,5 +1,5 @@
 // Main entry point for Prisma Flare
-export { default as ExtendedPrismaClient } from './core/extendedPrismaClient';
+export { ExtendedPrismaClient } from './core/extendedPrismaClient';
 export { default as QueryBuilder } from './core/queryBuilder';
 export { 
   beforeCreate, 

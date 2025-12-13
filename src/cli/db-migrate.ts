@@ -30,7 +30,14 @@ function runMigrations(): void {
     console.log('🔄 Running Prisma migrations...');
     
     // Run prisma migrate dev
-    execSync('npx prisma migrate dev', { 
+    const args = process.argv.slice(2).join(' ');
+    const schemaArg = config.isLibraryDev ? '--schema=tests/prisma/schema.prisma' : '';
+    
+    // If we are in library dev, we might want to pass the schema, but let's respect user args too
+    const command = `npx prisma migrate dev ${schemaArg} ${args}`;
+    
+    console.log(`Running: ${command}`);
+    execSync(command, { 
       stdio: 'inherit',
       env: process.env 
     });

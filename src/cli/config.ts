@@ -30,8 +30,8 @@ export function loadConfig(): PrismaFlareConfig {
   const isLibraryDev = packageJson.name === 'prisma-flare';
 
   let config: Omit<PrismaFlareConfig, 'isLibraryDev'> = { 
-    modelsPath: 'src/models',
-    dbPath: isLibraryDev ? 'src/core/db' : 'src/db', // Default path to db instance
+    modelsPath: isLibraryDev ? 'tests/generated/models' : 'src/models',
+    dbPath: isLibraryDev ? 'tests/db' : 'src/db', // Default path to db instance
   };
   
   if (fs.existsSync(configPath)) {

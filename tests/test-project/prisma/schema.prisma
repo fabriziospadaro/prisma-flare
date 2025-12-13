@@ -1,16 +1,12 @@
-// Example Prisma schema for testing Prisma Flare utilities
-// Replace this with your own schema
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
 
 generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-// Example models to demonstrate the callback and query builder features
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique

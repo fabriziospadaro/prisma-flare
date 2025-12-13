@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { registry, DatabaseAdapter } from '../src/core/adapters';
-import { SqliteAdapter } from '../src/core/adapters/sqlite';
-import { PostgresAdapter } from '../src/core/adapters/postgres';
+import { dbAdapterRegistry as registry, DatabaseAdapter } from 'prisma-flare';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -45,27 +43,27 @@ describe('Database Adapters', () => {
     });
 
     it('should match sqlite urls', () => {
-      expect(SqliteAdapter.matches('file:./dev.db')).toBe(true);
-      expect(SqliteAdapter.matches('postgres://localhost')).toBe(false);
+      expect(registry.getAdapter('file:./dev.db').name).toBe('sqlite');
     });
 
     it('should create a sqlite database file', async () => {
-      await SqliteAdapter.create(testDbUrl);
+      const adapter = registry.getAdapter(testDbUrl);
+      await adapter.create(testDbUrl);
       expect(fs.existsSync(testDbPath)).toBe(true);
     });
 
     it('should drop a sqlite database file', async () => {
       fs.writeFileSync(testDbPath, '');
-      await SqliteAdapter.drop(testDbUrl);
+      const adapter = registry.getAdapter(testDbUrl);
+      await adapter.drop(testDbUrl);
       expect(fs.existsSync(testDbPath)).toBe(false);
     });
   });
 
   describe('PostgresAdapter', () => {
     it('should match postgres urls', () => {
-      expect(PostgresAdapter.matches('postgresql://user:pass@localhost:5432/db')).toBe(true);
-      expect(PostgresAdapter.matches('postgres://user:pass@localhost:5432/db')).toBe(true);
-      expect(PostgresAdapter.matches('file:./dev.db')).toBe(false);
+      expect(registry.getAdapter('postgresql://user:pass@localhost:5432/db').name).toBe('postgres');
+      expect(registry.getAdapter('postgres://user:pass@localhost:5432/db').name).toBe('postgres');
     });
   });
 });

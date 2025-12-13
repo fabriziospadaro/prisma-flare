@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
-import { beforeCreate, afterCreate, afterUpdate, afterChange } from '../src';
-import { db } from '../src/core/db';
-import hookRegistry from '../src/core/hookRegistry';
+import { beforeCreate, afterCreate, afterUpdate, afterChange, hookRegistry } from 'prisma-flare';
+// @ts-ignore
+import { DB } from 'prisma-flare/generated';
 import { cleanDatabase, disconnectPrisma } from './helpers';
 
 describe('Hooks Integration Tests', () => {
@@ -25,7 +25,8 @@ describe('Hooks Integration Tests', () => {
       
       beforeCreate('user', callback);
 
-      await db.query('user').create({
+      // @ts-ignore
+      await DB.users.create({
         data: { email: 'test@example.com', name: 'Test User' },
       });
 
@@ -46,13 +47,15 @@ describe('Hooks Integration Tests', () => {
       });
 
       await expect(
-        db.query('user').create({
+        // @ts-ignore
+        DB.users.create({
           data: { email: 'fail@example.com', name: 'Fail User' },
         })
       ).rejects.toThrow('Validation Failed');
 
       // Verify user was NOT created
-      const user = await db.query('user').where({ email: 'fail@example.com' }).findFirst();
+      // @ts-ignore
+      const user = await DB.users.where({ email: 'fail@example.com' }).findFirst();
       expect(user).toBeNull();
     });
 
@@ -66,14 +69,16 @@ describe('Hooks Integration Tests', () => {
 
       // Should fail
       await expect(
-        db.query('user').create({
+        // @ts-ignore
+        DB.users.create({
           data: { email: 'invalid-email', name: 'Invalid User' },
         })
       ).rejects.toThrow('Invalid email format');
 
       // Should succeed
       await expect(
-        db.query('user').create({
+        // @ts-ignore
+        DB.users.create({
           data: { email: 'valid@example.com', name: 'Valid User' },
         })
       ).resolves.toBeDefined();
@@ -86,7 +91,8 @@ describe('Hooks Integration Tests', () => {
       
       afterCreate('user', callback);
 
-      const user = await db.query('user').create({
+      // @ts-ignore
+      const user = await DB.users.create({
         data: { email: 'test@example.com', name: 'Test User' },
       });
 
@@ -110,13 +116,15 @@ describe('Hooks Integration Tests', () => {
     it('should execute after updating a user', async () => {
       const callback = vi.fn();
       
-      const user = await db.query('user').create({
+      // @ts-ignore
+      const user = await DB.users.create({
         data: { email: 'test@example.com', name: 'Test User' },
       });
 
       afterUpdate('user', callback);
 
-      await db.query('user').whereId(user.id).update({
+      // @ts-ignore
+      await DB.users.whereId(user.id).update({
         data: { name: 'Updated Name' },
       });
 
@@ -128,13 +136,15 @@ describe('Hooks Integration Tests', () => {
     it('should detect when a specific field changes', async () => {
       const callback = vi.fn();
       
-      const user = await db.query('user').create({
+      // @ts-ignore
+      const user = await DB.users.create({
         data: { email: 'test@example.com', name: 'Test User' },
       });
 
       afterChange('user', 'name', callback);
 
-      await db.query('user').update({
+      // @ts-ignore
+      await DB.users.update({
         where: { id: user.id },
         data: { name: 'New Name' },
       });
@@ -152,7 +162,8 @@ describe('Hooks Integration Tests', () => {
       const callback = vi.fn();
       
       // Create 2 users with status 'pending'
-      await db.query('user').createMany({
+      // @ts-ignore
+      await DB.users.createMany({
         data: [
           { email: 'u1@test.com', name: 'U1', status: 'pending' },
           { email: 'u2@test.com', name: 'U2', status: 'pending' },
@@ -162,7 +173,8 @@ describe('Hooks Integration Tests', () => {
       afterChange('user', 'status', callback);
 
       // Update them to 'active' - this changes the field we might filter by
-      await db.query('user').updateMany({
+      // @ts-ignore
+      await DB.users.updateMany({
         where: { status: 'pending' },
         data: { status: 'active' },
       });
@@ -180,13 +192,15 @@ describe('Hooks Integration Tests', () => {
     it('should not trigger when field does not change', async () => {
       const callback = vi.fn();
       
-      const user = await db.query('user').create({
+      // @ts-ignore
+      const user = await DB.users.create({
         data: { email: 'test@example.com', name: 'Test User' },
       });
 
       afterChange('user', 'name', callback);
 
-      await db.query('user').update({
+      // @ts-ignore
+      await DB.users.update({
         where: { id: user.id },
         data: { email: 'newemail@example.com' },
       });
@@ -203,7 +217,8 @@ describe('Hooks Integration Tests', () => {
       beforeCreate('user', beforeCallback);
       afterCreate('user', afterCallback);
 
-      await db.query('user').create({
+      // @ts-ignore
+      await DB.users.create({
         data: { email: 'test@example.com', name: 'Test User' },
       });
 

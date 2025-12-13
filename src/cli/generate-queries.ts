@@ -12,9 +12,12 @@ export function generateQueries() {
   const rootDir = findProjectRoot(process.cwd());
   const config = loadConfig();
 
-  const schemaPath = path.join(rootDir, 'prisma', 'schema.prisma');
+  const schemaPath = config.isLibraryDev 
+    ? path.join(rootDir, 'tests', 'prisma', 'schema.prisma')
+    : path.join(rootDir, 'prisma', 'schema.prisma');
+
   if (!fs.existsSync(schemaPath)) {
-    console.error('❌ prisma/schema.prisma not found');
+    console.error(`❌ Schema not found at ${schemaPath}`);
     return;
   }
 
@@ -58,14 +61,12 @@ export function generateQueries() {
     // Only use relative import if we are developing the library AND the file exists
     const localQueryBuilderPath = path.join(rootDir, 'src/core/queryBuilder.ts');
     if (config.isLibraryDev && fs.existsSync(localQueryBuilderPath)) {
-       // In library dev, we import from core
-       // queriesDir is src/models
-       // QueryBuilder is in src/core/queryBuilder
-       const absQueryBuilderPath = path.join(rootDir, 'src/core/queryBuilder');
-       let relativePathToQB = path.relative(queriesDir, absQueryBuilderPath);
-       if (!relativePathToQB.startsWith('.')) relativePathToQB = './' + relativePathToQB;
-       relativePathToQB = relativePathToQB.replace(/\\/g, '/');
-       queryBuilderImport = `import QueryBuilder from '${relativePathToQB}';`;
+       // In library dev, we import from src to simulate package usage
+       const absSrcPath = path.join(rootDir, 'src');
+       let relativePathToSrc = path.relative(queriesDir, absSrcPath);
+       if (!relativePathToSrc.startsWith('.')) relativePathToSrc = './' + relativePathToSrc;
+       relativePathToSrc = relativePathToSrc.replace(/\\/g, '/');
+       queryBuilderImport = `import { QueryBuilder } from '${relativePathToSrc}';`;
     }
 
     const content = `import { db } from '${relativePathToDb}';
@@ -80,23 +81,39 @@ export default class ${model} extends QueryBuilder<'${modelCamel}'> {
     fs.writeFileSync(queryFilePath, content);
   });
 
-  // Update prisma-flare package in node_modules
+  // Update prisma-flare package in node_modules or local dist
+  let pfDistDir: string;
+
   if (config.isLibraryDev) {
-    console.log('Skipping package update in library dev mode');
-    return;
-  }
+    pfDistDir = path.join(rootDir, 'dist');
+    if (!fs.existsSync(pfDistDir)) {
+      fs.mkdirSync(pfDistDir, { recursive: true });
+    }
+  } else {
+    const pfPackageDir = path.join(rootDir, 'node_modules', 'prisma-flare');
+    pfDistDir = path.join(pfPackageDir, 'dist');
 
-  const pfPackageDir = path.join(rootDir, 'node_modules', 'prisma-flare');
-  const pfDistDir = path.join(pfPackageDir, 'dist');
-
-  if (!fs.existsSync(pfDistDir)) {
-    console.warn('⚠️ Could not find prisma-flare dist directory. Skipping DB export generation.');
-    return;
+    if (!fs.existsSync(pfDistDir)) {
+      // If the package is not found, we are likely in the library repo itself or it's not installed.
+      // We silently skip without error, as this is expected during library development.
+      return;
+    }
   }
 
   // Calculate relative path from dist to db
   // absDbPath is already defined in the outer scope
-  let relativePathToDbForDist = path.relative(pfDistDir, absDbPath);
+  
+  // Detect extension if missing
+  let dbPathWithExt = absDbPath;
+  if (!absDbPath.endsWith('.ts') && !absDbPath.endsWith('.js')) {
+    if (fs.existsSync(absDbPath + '.ts')) {
+      dbPathWithExt = absDbPath + '.ts';
+    } else if (fs.existsSync(absDbPath + '.js')) {
+      dbPathWithExt = absDbPath + '.js';
+    }
+  }
+
+  let relativePathToDbForDist = path.relative(pfDistDir, dbPathWithExt);
   if (!relativePathToDbForDist.startsWith('.')) relativePathToDbForDist = './' + relativePathToDbForDist;
   relativePathToDbForDist = relativePathToDbForDist.replace(/\\/g, '/');
 
@@ -115,22 +132,17 @@ export default class ${model} extends QueryBuilder<'${modelCamel}'> {
   }`;
   }).join('\n\n');
 
-  const injectionMarker = '// --- PRISMA-FLARE-GENERATED ---';
+  // Update generated.js (ESM)
+  const generatedJsPath = path.join(pfDistDir, 'generated.js');
+  console.log(`Writing generated JS to: ${generatedJsPath}`);
+  
+  const imports = models.map(model => {
+    // We generated .ts files, so we import them as .ts for tsx/vitest support
+    // In a real ESM build with tsc, this might need to be .js
+    return `import ${model} from '${relativePathToModels}/${model}.ts';`;
+  }).join('\n');
 
-  // Update index.js (ESM)
-  const indexJsPath = path.join(pfDistDir, 'index.js');
-  if (fs.existsSync(indexJsPath)) {
-    let content = fs.readFileSync(indexJsPath, 'utf-8');
-    if (content.includes(injectionMarker)) {
-      content = content.split(injectionMarker)[0];
-    }
-
-    const imports = models.map(model => {
-      return `import ${model} from '${relativePathToModels}/${model}';`;
-    }).join('\n');
-
-    const newContent = `${content}
-${injectionMarker}
+  const generatedContent = `
 import { db } from '${relativePathToDbForDist}';
 ${imports}
 
@@ -142,26 +154,19 @@ export class DB {
 ${getters}
 }
 `;
-    fs.writeFileSync(indexJsPath, newContent);
-    console.log('Updated prisma-flare/dist/index.js');
-  }
+  fs.writeFileSync(generatedJsPath, generatedContent);
+  console.log('Updated prisma-flare/dist/generated.js');
 
-  // Update index.cjs (CommonJS)
-  const indexCjsPath = path.join(pfDistDir, 'index.cjs');
-  if (fs.existsSync(indexCjsPath)) {
-    let content = fs.readFileSync(indexCjsPath, 'utf-8');
-    if (content.includes(injectionMarker)) {
-      content = content.split(injectionMarker)[0];
-    }
+  // Update generated.cjs (CommonJS)
+  const generatedCjsPath = path.join(pfDistDir, 'generated.cjs');
+  
+  const importsCjs = models.map(model => {
+    return `const ${model} = require('${relativePathToModels}/${model}').default;`;
+  }).join('\n');
 
-    const imports = models.map(model => {
-      return `const ${model} = require('${relativePathToModels}/${model}').default;`;
-    }).join('\n');
-
-    const newContent = `${content}
-${injectionMarker}
+  const generatedCjsContent = `
 const { db } = require('${relativePathToDbForDist}');
-${imports}
+${importsCjs}
 
 class DB {
   static get instance() {
@@ -172,33 +177,26 @@ ${getters}
 }
 exports.DB = DB;
 `;
-    fs.writeFileSync(indexCjsPath, newContent);
-    console.log('Updated prisma-flare/dist/index.cjs');
-  }
+  fs.writeFileSync(generatedCjsPath, generatedCjsContent);
+  console.log('Updated prisma-flare/dist/generated.cjs');
 
-  // Update index.d.ts
-  const indexDtsPath = path.join(pfDistDir, 'index.d.ts');
-  if (fs.existsSync(indexDtsPath)) {
-    let content = fs.readFileSync(indexDtsPath, 'utf-8');
-    if (content.includes(injectionMarker)) {
-      content = content.split(injectionMarker)[0];
-    }
+  // Update generated.d.ts
+  const generatedDtsPath = path.join(pfDistDir, 'generated.d.ts');
+  
+  const importsDts = models.map(model => {
+    return `import ${model} from '${relativePathToModels}/${model}';`;
+  }).join('\n');
 
-    const imports = models.map(model => {
-      return `import ${model} from '${relativePathToModels}/${model}';`;
-    }).join('\n');
+  const gettersTypes = models.map(model => {
+    const modelCamel = toCamelCase(model);
+    const customPlural = config.plurals?.[model];
+    const modelPlural = customPlural || pluralize(modelCamel);
+    return `  static get ${modelPlural}(): ${model};`;
+  }).join('\n');
 
-    const gettersTypes = models.map(model => {
-      const modelCamel = toCamelCase(model);
-      const customPlural = config.plurals?.[model];
-      const modelPlural = customPlural || pluralize(modelCamel);
-      return `  static get ${modelPlural}(): ${model};`;
-    }).join('\n');
-
-    const newContent = `${content}
-${injectionMarker}
+  const generatedDtsContent = `
 import { db } from '${relativePathToDbForDist}';
-${imports}
+${importsDts}
 
 export declare class DB {
   static get instance(): typeof db;
@@ -206,9 +204,8 @@ export declare class DB {
 ${gettersTypes}
 }
 `;
-    fs.writeFileSync(indexDtsPath, newContent);
-    console.log('Updated prisma-flare/dist/index.d.ts');
-  }
+  fs.writeFileSync(generatedDtsPath, generatedDtsContent);
+  console.log('Updated prisma-flare/dist/generated.d.ts');
 }
 
 

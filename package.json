@@ -15,8 +15,10 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "prepare": "npm run build",
     "prepublishOnly": "npm run clean && npm run build",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "vitest run tests/integration-project.test.ts",
+    "test:e2e": "vitest run tests/integration-project.test.ts",
+    "test:all": "npm run test",
+    "test:watch": "vitest -c vitest.integration.config.ts",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "create": "tsx src/cli/db-create.ts",
@@ -70,6 +72,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./generated": {
+      "types": "./dist/generated.d.ts",
+      "import": "./dist/generated.js",
+      "require": "./dist/generated.cjs"
     },
     "./queryBuilder": {
       "types": "./dist/core/queryBuilder.d.ts",

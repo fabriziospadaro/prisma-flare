@@ -37,16 +37,6 @@ function runMigrations(): void {
 
     console.log('✓ Migrations completed successfully');
 
-    console.log('🔄 Generating Prisma Client...');
-    
-    // Generate Prisma Client
-    execSync('npx prisma generate', { 
-      stdio: 'inherit',
-      env: process.env 
-    });
-
-    console.log('✓ Prisma Client generated successfully');
-
     console.log('🔄 Generating Query classes...');
     generateQueries();
     console.log('✓ Query classes generated successfully');

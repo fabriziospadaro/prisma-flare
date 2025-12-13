@@ -102,7 +102,3 @@ ${getters}
   fs.writeFileSync(indexFilePath, indexContent);
 }
 
-// Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  generateQueries();
-}

@@ -42,7 +42,6 @@ export function generateQueries() {
     const modelCamel = toCamelCase(model);
 
     if (fs.existsSync(queryFilePath)) {
-      console.log(`Skipping ${queryFileName} (already exists)...`);
       return;
     }
 
@@ -110,7 +109,6 @@ export default class ${model} extends FlareBuilder<'${modelCamel}'> {
   }).join('\n\n');
 
   const generatedJsPath = path.join(pfDistDir, 'generated.js');
-  console.log(`Writing generated JS to: ${generatedJsPath}`);
 
   const imports = models.map(model => {
     return `import ${model} from '${relativePathToModels}/${model}.ts';`;
@@ -129,8 +127,6 @@ ${getters}
 }
 `;
   fs.writeFileSync(generatedJsPath, generatedContent);
-  console.log('Updated prisma-flare/dist/generated.js');
-
   // Update generated.cjs (CommonJS)
   const generatedCjsPath = path.join(pfDistDir, 'generated.cjs');
 
@@ -152,7 +148,6 @@ ${getters}
 exports.DB = DB;
 `;
   fs.writeFileSync(generatedCjsPath, generatedCjsContent);
-  console.log('Updated prisma-flare/dist/generated.cjs');
 
   // Update generated.d.ts
   const generatedDtsPath = path.join(pfDistDir, 'generated.d.ts');
@@ -179,7 +174,6 @@ ${gettersTypes}
 }
 `;
   fs.writeFileSync(generatedDtsPath, generatedDtsContent);
-  console.log('Updated prisma-flare/dist/generated.d.ts');
 }
 
 

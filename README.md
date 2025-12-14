@@ -112,6 +112,46 @@ const users = await DB.users
 const rawDb = DB.instance;
 ```
 
+### Transactions
+
+Prisma Flare provides a powerful wrapper around Prisma's interactive transactions, allowing you to use the fluent `from()` API within a transaction scope.
+
+```typescript
+// Simple transaction
+const result = await DB.instance.transaction(async (tx) => {
+  // Create a user
+  const user = await tx.from('User').create({
+    email: 'tx-user@example.com',
+    name: 'Transaction User',
+  });
+
+  // Create a related post using the user's ID
+  const post = await tx.from('Post').create({
+    title: 'Transaction Post',
+    content: 'Content',
+    authorId: user.id,
+  });
+
+  return { user, post };
+});
+
+// Complex logic with conditional operations
+await DB.instance.transaction(async (tx) => {
+  const existing = await tx.from('User').where({ email: 'check@example.com' }).findFirst();
+
+  if (!existing) {
+    await tx.from('User').create({
+      email: 'check@example.com',
+      name: 'New User'
+    });
+  } else {
+    await tx.from('User').withId(existing.id).update({
+      lastLogin: new Date()
+    });
+  }
+});
+```
+
 ### Callhooks & Middleware
 
 Define hooks to run logic before or after database operations. You can use `before` hooks for validation or data modification.

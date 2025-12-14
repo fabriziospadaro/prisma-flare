@@ -3,6 +3,10 @@ import { generateQueries } from './generate-queries';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -50,7 +54,7 @@ function runScript(scriptName: string) {
     console.error(`No script found for ${scriptName}`);
     return;
   }
-  
+
   let scriptPath = path.join(__dirname, file.replace('.ts', '.js'));
 
   if (!fs.existsSync(scriptPath)) {
@@ -59,9 +63,9 @@ function runScript(scriptName: string) {
       scriptPath = cliScriptPath;
     }
   }
-  
+
   const child = spawn('node', [scriptPath], { stdio: 'inherit' });
-  
+
   child.on('close', (code) => {
     process.exit(code || 0);
   });

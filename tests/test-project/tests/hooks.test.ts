@@ -4,7 +4,6 @@
 
 import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { beforeCreate, afterCreate, afterUpdate, afterChange, hookRegistry } from 'prisma-flare';
-// @ts-ignore
 import { DB } from 'prisma-flare/generated';
 import { cleanDatabase, disconnectPrisma } from './helpers';
 
@@ -22,10 +21,9 @@ describe('Hooks Integration Tests', () => {
   describe('beforeCreate Hook', () => {
     it('should execute before creating a user', async () => {
       const callback = vi.fn();
-      
+
       beforeCreate('user', callback);
 
-      // @ts-ignore
       await DB.users.create({
         data: { email: 'test@example.com', name: 'Test User' },
       });
@@ -47,14 +45,12 @@ describe('Hooks Integration Tests', () => {
       });
 
       await expect(
-        // @ts-ignore
         DB.users.create({
           data: { email: 'fail@example.com', name: 'Fail User' },
         })
       ).rejects.toThrow('Validation Failed');
 
       // Verify user was NOT created
-      // @ts-ignore
       const user = await DB.users.where({ email: 'fail@example.com' }).findFirst();
       expect(user).toBeNull();
     });
@@ -69,7 +65,6 @@ describe('Hooks Integration Tests', () => {
 
       // Should fail
       await expect(
-        // @ts-ignore
         DB.users.create({
           data: { email: 'invalid-email', name: 'Invalid User' },
         })
@@ -77,7 +72,6 @@ describe('Hooks Integration Tests', () => {
 
       // Should succeed
       await expect(
-        // @ts-ignore
         DB.users.create({
           data: { email: 'valid@example.com', name: 'Valid User' },
         })
@@ -88,10 +82,9 @@ describe('Hooks Integration Tests', () => {
   describe('afterCreate Hook', () => {
     it('should execute after creating a user', async () => {
       const callback = vi.fn();
-      
+
       afterCreate('user', callback);
 
-      // @ts-ignore
       const user = await DB.users.create({
         data: { email: 'test@example.com', name: 'Test User' },
       });
@@ -115,17 +108,15 @@ describe('Hooks Integration Tests', () => {
   describe('afterUpdate Hook', () => {
     it('should execute after updating a user', async () => {
       const callback = vi.fn();
-      
-      // @ts-ignore
+
       const user = await DB.users.create({
         data: { email: 'test@example.com', name: 'Test User' },
       });
 
       afterUpdate('user', callback);
 
-      // @ts-ignore
-      await DB.users.whereId(user.id).update({
-        data: { name: 'Updated Name' },
+      await DB.users.withId(user.id).update({
+        name: 'Updated Name'
       });
 
       expect(callback).toHaveBeenCalled();
@@ -135,18 +126,15 @@ describe('Hooks Integration Tests', () => {
   describe('afterChange Hook', () => {
     it('should detect when a specific field changes', async () => {
       const callback = vi.fn();
-      
-      // @ts-ignore
+
       const user = await DB.users.create({
         data: { email: 'test@example.com', name: 'Test User' },
       });
 
       afterChange('user', 'name', callback);
 
-      // @ts-ignore
-      await DB.users.update({
-        where: { id: user.id },
-        data: { name: 'New Name' },
+      await DB.users.where({ id: user.id }).update({
+        name: 'New Name'
       });
 
       expect(callback).toHaveBeenCalled();
@@ -160,9 +148,8 @@ describe('Hooks Integration Tests', () => {
 
     it('should trigger correctly on updateMany even if filter field changes', async () => {
       const callback = vi.fn();
-      
+
       // Create 2 users with status 'pending'
-      // @ts-ignore
       await DB.users.createMany({
         data: [
           { email: 'u1@test.com', name: 'U1', status: 'pending' },
@@ -173,10 +160,8 @@ describe('Hooks Integration Tests', () => {
       afterChange('user', 'status', callback);
 
       // Update them to 'active' - this changes the field we might filter by
-      // @ts-ignore
-      await DB.users.updateMany({
-        where: { status: 'pending' },
-        data: { status: 'active' },
+      await DB.users.where({ status: 'pending' }).updateMany({
+        status: 'active'
       });
 
       // Should be called twice (once for each user)
@@ -191,18 +176,15 @@ describe('Hooks Integration Tests', () => {
 
     it('should not trigger when field does not change', async () => {
       const callback = vi.fn();
-      
-      // @ts-ignore
+
       const user = await DB.users.create({
         data: { email: 'test@example.com', name: 'Test User' },
       });
 
       afterChange('user', 'name', callback);
 
-      // @ts-ignore
-      await DB.users.update({
-        where: { id: user.id },
-        data: { email: 'newemail@example.com' },
+      await DB.users.where({ id: user.id }).update({
+        email: 'newemail@example.com'
       });
 
       expect(callback).not.toHaveBeenCalled();
@@ -213,11 +195,10 @@ describe('Hooks Integration Tests', () => {
     it('should execute multiple hooks in sequence', async () => {
       const beforeCallback = vi.fn();
       const afterCallback = vi.fn();
-      
+
       beforeCreate('user', beforeCallback);
       afterCreate('user', afterCallback);
 
-      // @ts-ignore
       await DB.users.create({
         data: { email: 'test@example.com', name: 'Test User' },
       });

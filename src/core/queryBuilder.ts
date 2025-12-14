@@ -1,8 +1,8 @@
 import { Prisma } from '@prisma/client';
-import type { 
-  ModelName, 
-  ModelDelegate, 
-  RecordType, 
+import type {
+  ModelName,
+  ModelDelegate,
+  RecordType,
   WhereInput,
   OrderByInput,
   SelectInput,
@@ -11,7 +11,9 @@ import type {
   CreateArgs,
   CreateManyArgs,
   UpdateArgs,
+  UpdateData,
   UpdateManyArgs,
+  UpdateManyData,
   DeleteArgs,
   DeleteManyArgs,
   UpsertArgs,
@@ -51,7 +53,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
    * Adds a where condition to the query for the specified id
    * @param id - The id to search for
    */
-  whereId(id: number | string): QueryBuilder<T, Args & { where: { id: number | string } }> {
+  withId(id: number | string): QueryBuilder<T, Args & { where: { id: number | string } }> {
     if (!id) {
       throw new Error('Id is required');
     }
@@ -248,7 +250,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
       if (results.length > 0) {
         await callback(results);
         page++;
-        
+
         if (results.length < size) {
           hasMore = false;
         }
@@ -256,7 +258,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
         hasMore = false;
       }
     }
-    
+
     this.query.skip = originalSkip;
     this.query.take = originalTake;
   }
@@ -319,14 +321,14 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
   }
 
   /** Executes update and returns the updated record */
-  async update(args?: UpdateArgs<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'update'>> {
-    const query = args ? { ...this.query, ...args } : this.query;
+  async update(data: UpdateData<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'update'>> {
+    const query = { ...this.query, data };
     return (this.model as any).update(query);
   }
 
   /** Executes updateMany and returns the count of updated records */
-  async updateMany(args?: UpdateManyArgs<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'updateMany'>> {
-    const query = args ? { ...this.query, ...args } : this.query;
+  async updateMany(data: UpdateManyData<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'updateMany'>> {
+    const query = { ...this.query, data };
     return (this.model as any).updateMany(query);
   }
 

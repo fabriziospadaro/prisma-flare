@@ -246,7 +246,7 @@ const authorPosts = await DB.post
 ## Query Builder Methods
 
 - `where(condition)` - Add WHERE conditions
-- `whereId(id)` - Filter by ID
+- `withId(id)` - Filter by ID
 - `order(orderBy)` - Add ORDER BY
 - `first(key)` - Get first record
 - `last(key)` - Get last record

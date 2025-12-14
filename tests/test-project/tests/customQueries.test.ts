@@ -14,7 +14,6 @@ describe('Custom Queries Integration Tests', () => {
   describe('UserQuery', () => {
     it('should chain custom methods with standard methods', async () => {
       // Create test users
-      // @ts-ignore
       await DB.users.createMany({
         data: [
           { email: 'alice@example.com', name: 'Alice Wonderland' },
@@ -24,7 +23,6 @@ describe('Custom Queries Integration Tests', () => {
       });
 
       // Test chaining: withName + order + limit
-      // @ts-ignore
       const users = await DB.users
         .withName('Alice')
         .order({ name: 'asc' })
@@ -36,12 +34,10 @@ describe('Custom Queries Integration Tests', () => {
     });
 
     it('should use withEmail custom method', async () => {
-      // @ts-ignore
       await DB.users.create({
         data: { email: 'target@example.com', name: 'Target' },
       });
 
-      // @ts-ignore
       const user = await DB.users
         .withEmail('target@example.com')
         .findFirst();
@@ -54,12 +50,10 @@ describe('Custom Queries Integration Tests', () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       
-      // @ts-ignore
       await DB.users.create({
         data: { email: 'new@example.com', name: 'New User' },
       });
 
-      // @ts-ignore
       const users = await DB.users
         .createdAfter(yesterday)
         .findMany();
@@ -71,12 +65,10 @@ describe('Custom Queries Integration Tests', () => {
   describe('PostQuery', () => {
     it('should chain custom methods for posts', async () => {
       // Create user and posts
-      // @ts-ignore
       const user = await DB.users.create({
         data: { email: 'author@example.com', name: 'Author' },
       });
 
-      // @ts-ignore
       await DB.posts.createMany({
         data: [
           { title: 'First Post', published: true, authorId: user.id },
@@ -86,7 +78,6 @@ describe('Custom Queries Integration Tests', () => {
       });
 
       // Test chaining: published + withTitle
-      // @ts-ignore
       const publishedPosts = await DB.posts
         .published()
         .withTitle('First')
@@ -96,7 +87,6 @@ describe('Custom Queries Integration Tests', () => {
       expect(publishedPosts[0].title).toBe('First Post');
 
       // Test chaining: drafts
-      // @ts-ignore
       const drafts = await DB.posts
         .drafts()
         .withAuthorId(user.id)
@@ -107,12 +97,10 @@ describe('Custom Queries Integration Tests', () => {
     });
 
     it('should use recent custom method', async () => {
-      // @ts-ignore
       const user = await DB.users.create({
         data: { email: 'recent@example.com', name: 'Recent' },
       });
 
-      // @ts-ignore
       await DB.posts.create({
         data: { 
           title: 'Recent Post', 
@@ -121,7 +109,6 @@ describe('Custom Queries Integration Tests', () => {
         },
       });
 
-      // @ts-ignore
       const posts = await DB.posts
         .recent(1)
         .findMany();

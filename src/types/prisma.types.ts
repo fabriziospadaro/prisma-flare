@@ -72,9 +72,20 @@ export type CreateManyArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'cre
 export type UpdateArgs<T extends ModelName> = OptionalWhere<NonNullable<PrismaArgs<T, 'update'>>>;
 
 /**
+ * Extract Update data type for a given model
+ */
+export type UpdateData<T extends ModelName> = PrismaArgs<T, 'update'> extends { data: infer D } ? D : never;
+
+/**
  * Extract UpdateMany args type for a given model
  */
 export type UpdateManyArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'updateMany'>>;
+
+/**
+ * Extract UpdateMany data type for a given model
+ */
+export type UpdateManyData<T extends ModelName> = PrismaArgs<T, 'updateMany'> extends { data: infer D } ? D : never;
+
 
 /**
  * Extract Delete args type for a given model

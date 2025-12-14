@@ -89,6 +89,19 @@
       "require": "./dist/core/hooks.cjs"
     }
   },
+  "typesVersions": {
+    "*": {
+      "generated": [
+        "./dist/generated.d.ts"
+      ],
+      "queryBuilder": [
+        "./dist/core/queryBuilder.d.ts"
+      ],
+      "hooks": [
+        "./dist/core/hooks.d.ts"
+      ]
+    }
+  },
   "files": [
     "dist",
     "README.md"

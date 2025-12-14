@@ -4,9 +4,9 @@
 
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { DB } from 'prisma-flare/generated';
-import { cleanDatabase, disconnectPrisma } from './helpers';
+import { cleanDatabase, disconnectPrisma } from './helpers.js';
 
-describe('QueryBuilder Integration Tests', () => {
+describe('FlareBuilder Integration Tests', () => {
   beforeEach(async () => {
     await cleanDatabase();
   });

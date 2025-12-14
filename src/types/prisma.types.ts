@@ -3,7 +3,7 @@ import type { PrismaClient } from '@prisma/client';
 /**
  * Extract model names from PrismaClient
  */
-export type ModelName = Exclude<
+type RawPrismaClientKeys = Exclude<
   Extract<keyof PrismaClient, string>,
   | '$connect'
   | '$disconnect'
@@ -18,9 +18,18 @@ export type ModelName = Exclude<
 >;
 
 /**
+ * Extract model names from PrismaClient
+ */
+export type ModelName = [RawPrismaClientKeys] extends [never]
+  ? string
+  : RawPrismaClientKeys | Capitalize<RawPrismaClientKeys>;
+
+/**
  * Extract the delegate type for a given model
  */
-export type ModelDelegate<T extends ModelName> = PrismaClient[T];
+export type ModelDelegate<T extends ModelName> = Uncapitalize<T> extends keyof PrismaClient
+  ? PrismaClient[Uncapitalize<T>]
+  : any;
 
 /**
  * Get the proper Prisma args type for a model operation

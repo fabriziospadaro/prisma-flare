@@ -48,21 +48,21 @@ export function generateQueries() {
 
     console.log(`Generating ${queryFileName}...`);
 
-    let queryBuilderImport = "import { QueryBuilder } from 'prisma-flare';";
+    let queryBuilderImport = "import { FlareBuilder } from 'prisma-flare';";
 
-    const localQueryBuilderPath = path.join(rootDir, 'src/core/queryBuilder.ts');
+    const localQueryBuilderPath = path.join(rootDir, 'src/core/flareBuilder.ts');
     if (fs.existsSync(localQueryBuilderPath)) {
       const absSrcPath = path.join(rootDir, 'src');
       let relativePathToSrc = path.relative(queriesDir, absSrcPath);
       if (!relativePathToSrc.startsWith('.')) relativePathToSrc = './' + relativePathToSrc;
       relativePathToSrc = relativePathToSrc.replace(/\\/g, '/');
-      queryBuilderImport = `import { QueryBuilder } from '${relativePathToSrc}';`;
+      queryBuilderImport = `import { FlareBuilder } from '${relativePathToSrc}';`;
     }
 
     const content = `import { db } from '${relativePathToDb}';
 ${queryBuilderImport}
 
-export default class ${model} extends QueryBuilder<'${modelCamel}'> {
+export default class ${model} extends FlareBuilder<'${modelCamel}'> {
   constructor() {
     super(db.${modelCamel});
   }

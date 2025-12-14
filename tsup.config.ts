@@ -10,7 +10,7 @@ export default defineConfig({
     'src/cli/db-migrate.ts',
     'src/cli/db-reset.ts',
     'src/cli/db-seed.ts',
-    'src/core/queryBuilder.ts',
+    'src/core/flareBuilder.ts',
     'src/core/hooks.ts'
   ],
   // Don't bundle dependencies - let Node.js resolve them at runtime

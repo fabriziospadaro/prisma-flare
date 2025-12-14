@@ -78,10 +78,10 @@
       "import": "./dist/generated.js",
       "require": "./dist/generated.cjs"
     },
-    "./queryBuilder": {
-      "types": "./dist/core/queryBuilder.d.ts",
-      "import": "./dist/core/queryBuilder.js",
-      "require": "./dist/core/queryBuilder.cjs"
+    "./flareBuilder": {
+      "types": "./dist/core/flareBuilder.d.ts",
+      "import": "./dist/core/flareBuilder.js",
+      "require": "./dist/core/flareBuilder.cjs"
     },
     "./hooks": {
       "types": "./dist/core/hooks.d.ts",
@@ -94,8 +94,8 @@
       "generated": [
         "./dist/generated.d.ts"
       ],
-      "queryBuilder": [
-        "./dist/core/queryBuilder.d.ts"
+      "flareBuilder": [
+        "./dist/core/flareBuilder.d.ts"
       ],
       "hooks": [
         "./dist/core/hooks.d.ts"

@@ -8,13 +8,9 @@ import type {
   SelectInput,
   IncludeInput,
   DistinctInput,
-  CreateArgs,
   CreateData,
-  CreateManyArgs,
   CreateManyData,
-  UpdateArgs,
   UpdateData,
-  UpdateManyArgs,
   UpdateManyData,
   DeleteArgs,
   DeleteManyArgs,
@@ -30,10 +26,10 @@ import type {
 } from '../types';
 
 /**
- * QueryBuilder for chainable Prisma queries with full type safety
+ * FlareBuilder for chainable Prisma queries with full type safety
  * The type safety is enforced through the ModelDelegate parameter
  */
-export default class QueryBuilder<T extends ModelName, Args extends Record<string, any> = Record<string, never>> {
+export default class FlareBuilder<T extends ModelName, Args extends Record<string, any> = Record<string, never>> {
   protected model: ModelDelegate<T>;
   protected query: QueryArgs;
 
@@ -46,7 +42,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
    * Adds a where condition to the query with type safety from Prisma
    * @param condition - Where filter matching your Prisma model
    */
-  where(condition: WhereInput<T>): QueryBuilder<T, Args & { where: WhereInput<T> }> {
+  where(condition: WhereInput<T>): FlareBuilder<T, Args & { where: WhereInput<T> }> {
     this.query.where = { ...this.query.where, ...(condition as any) };
     return this as any;
   }
@@ -55,7 +51,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
    * Adds a where condition to the query for the specified id
    * @param id - The id to search for
    */
-  withId(id: number | string): QueryBuilder<T, Args & { where: { id: number | string } }> {
+  withId(id: number | string): FlareBuilder<T, Args & { where: { id: number | string } }> {
     if (!id) {
       throw new Error('Id is required');
     }
@@ -67,7 +63,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
    * Adds an order by condition to the query
    * @param orderBy - OrderBy object matching your Prisma model
    */
-  order(orderBy: OrderByInput<T>): QueryBuilder<T, Args & { orderBy: OrderByInput<T> }> {
+  order(orderBy: OrderByInput<T>): FlareBuilder<T, Args & { orderBy: OrderByInput<T> }> {
     this.query.orderBy = orderBy;
     return this as any;
   }
@@ -76,7 +72,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
    * Gets the last record sorted by the specified field
    * @param key - Field to sort by (defaults to 'createdAt')
    */
-  last(key: keyof RecordType<T> | string = 'createdAt'): QueryBuilder<T, Args & { orderBy: any; take: number }> {
+  last(key: keyof RecordType<T> | string = 'createdAt'): FlareBuilder<T, Args & { orderBy: any; take: number }> {
     return this.order({ [key as string]: 'desc' } as any).limit(1) as any;
   }
 
@@ -84,7 +80,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
    * Gets the first record sorted by the specified field
    * @param key - Field to sort by (defaults to 'createdAt')
    */
-  first(key: keyof RecordType<T> | string = 'createdAt'): QueryBuilder<T, Args & { orderBy: any; take: number }> {
+  first(key: keyof RecordType<T> | string = 'createdAt'): FlareBuilder<T, Args & { orderBy: any; take: number }> {
     return this.order({ [key as string]: 'asc' } as any).limit(1) as any;
   }
 
@@ -92,7 +88,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
    * Sets a limit on the number of records to retrieve
    * @param limit - Maximum number of records
    */
-  limit(limit: number): QueryBuilder<T, Args & { take: number }> {
+  limit(limit: number): FlareBuilder<T, Args & { take: number }> {
     this.query.take = limit;
     return this as any;
   }
@@ -101,7 +97,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
    * Sets distinct fields for the query
    * @param distinct - Fields to be distinct
    */
-  distinct(distinct: DistinctInput<T>): QueryBuilder<T, Args & { distinct: DistinctInput<T> }> {
+  distinct(distinct: DistinctInput<T>): FlareBuilder<T, Args & { distinct: DistinctInput<T> }> {
     this.query.distinct = distinct;
     return this as any;
   }
@@ -110,7 +106,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
    * Selects specific fields to retrieve
    * @param fields - Select object matching your Prisma model
    */
-  select<S extends SelectInput<T>>(fields: S): QueryBuilder<T, Args & { select: S }> {
+  select<S extends SelectInput<T>>(fields: S): FlareBuilder<T, Args & { select: S }> {
     this.query.select = fields;
     return this as any;
   }
@@ -136,7 +132,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
    * Includes related models in the query
    * @param relations - Include object matching your Prisma model
    */
-  include<I extends IncludeInput<T>>(relations: I): QueryBuilder<T, Args & { include: I }> {
+  include<I extends IncludeInput<T>>(relations: I): FlareBuilder<T, Args & { include: I }> {
     this.query.include = relations;
     return this as any;
   }
@@ -145,7 +141,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
    * Groups results by specified fields
    * @param groupBy - Fields to group by
    */
-  groupBy(groupBy: GroupByInput<T>): QueryBuilder<T, Args & { by: GroupByInput<T> }> {
+  groupBy(groupBy: GroupByInput<T>): FlareBuilder<T, Args & { by: GroupByInput<T> }> {
     (this.query as any).by = groupBy;
     return this as any;
   }
@@ -154,7 +150,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
    * Adds a having condition to the query
    * @param condition - Having condition
    */
-  having(condition: HavingInput<T>): QueryBuilder<T, Args & { having: HavingInput<T> }> {
+  having(condition: HavingInput<T>): FlareBuilder<T, Args & { having: HavingInput<T> }> {
     this.query.having = condition;
     return this as any;
   }
@@ -163,7 +159,7 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
    * Skips the specified number of records
    * @param offset - Number of records to skip
    */
-  skip(offset: number): QueryBuilder<T, Args & { skip: number }> {
+  skip(offset: number): FlareBuilder<T, Args & { skip: number }> {
     this.query.skip = offset;
     return this as any;
   }
@@ -268,9 +264,9 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
   /**
    * Clones the current query builder instance
    */
-  clone(): QueryBuilder<T, Args> {
+  clone(): FlareBuilder<T, Args> {
     const queryCopy = JSON.parse(JSON.stringify(this.query));
-    return new QueryBuilder<T, Args>(this.model, queryCopy);
+    return new FlareBuilder<T, Args>(this.model, queryCopy);
   }
 
   /** Executes findFirstOrThrow and returns a single record */

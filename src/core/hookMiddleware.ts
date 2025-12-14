@@ -35,7 +35,8 @@ async function fetchAffectedRecords(
   where: any,
   fields?: Record<string, true>
 ): Promise<any[]> {
-  const delegate = db[model] as any;
+  const key = (model.charAt(0).toLowerCase() + model.slice(1)) as keyof PrismaClient;
+  const delegate = db[key] as any;
   // Ensure ID is always selected for tracking
   const select = fields ? { ...fields, id: true } : undefined;
   const records = await delegate.findMany({

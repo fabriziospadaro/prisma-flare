@@ -5,7 +5,7 @@ A powerful TypeScript utilities package for Prisma ORM that provides a callback 
 ## Features
 
 - **Plug & Play**: Works with any existing Prisma project
-- **Query Builder**: Elegant chainable query API for Prisma models
+- **Flare Builder**: Elegant chainable query API for Prisma models
 - **Auto-Generated Queries**: Automatically generates query classes based on your schema
 - **Callback System**: Hooks for before/after operations (create, update, delete, upsert)
 - **Column-Level Hooks**: Track changes to specific columns with `afterChange` callbacks
@@ -78,7 +78,7 @@ Example with custom plurals:
 
 ## Usage
 
-### Query Builder
+### Flare Builder
 
 Once generated, you can import the `DB` class to access chainable methods for your models.
 
@@ -177,9 +177,9 @@ You can extend the generated query classes with custom methods for your domain-s
 ```typescript
 // src/models/Post.ts
 import { db } from '../core/db';
-import QueryBuilder from '../core/queryBuilder';
+import { FlareBuilder } from 'prisma-flare';
 
-export default class Post extends QueryBuilder<'post'> {
+export default class Post extends FlareBuilder<'post'> {
   constructor() {
     super(db.post);
   }
@@ -243,7 +243,7 @@ const authorPosts = await DB.post
 - Leverage Prisma's query operators (`contains`, `gte`, `lte`, etc.)
 - Keep methods focused on a single responsibility
 
-## Query Builder Methods
+## Flare Builder Methods
 
 - `where(condition)` - Add WHERE conditions
 - `withId(id)` - Filter by ID

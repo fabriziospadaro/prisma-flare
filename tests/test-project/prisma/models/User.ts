@@ -1,7 +1,7 @@
 import { db } from '../db';
-import { QueryBuilder } from 'prisma-flare';
+import { FlareBuilder } from 'prisma-flare';
 
-export default class User extends QueryBuilder<'user'> {
+export default class User extends FlareBuilder<'user'> {
   constructor() {
     super(db.user);
   }

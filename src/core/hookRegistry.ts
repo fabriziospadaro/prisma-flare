@@ -14,7 +14,7 @@ class HookRegistry {
   };
 
   private columnHooks: {
-    afterChange: Record<string, ColumnChangeCallback[]>;
+    afterChange: Record<string, ColumnChangeCallback<any>[]>;
   };
 
   private fieldCache: Record<string, Record<string, true>>;
@@ -45,7 +45,7 @@ class HookRegistry {
     this.hooks[timing][key].push(fn as any);
   }
 
-  addColumnHook(model: ModelName, column: string, fn: ColumnChangeCallback): void {
+  addColumnHook(model: ModelName, column: string, fn: ColumnChangeCallback<any>): void {
     const key = `${model}:${column}`;
     if (!this.columnHooks.afterChange[key]) {
       this.columnHooks.afterChange[key] = [];

@@ -22,7 +22,7 @@ function runMigrations(): void {
 
     const args = process.argv.slice(2).join(' ');
 
-    const command = `npx prisma migrate dev ${args}`;
+    const command = `npx prisma migrate dev ${args} && npx prisma generate`;
 
     console.log(`Running: ${command}`);
     execSync(command, {

@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import FlareBuilder from './flareBuilder';
 import type { ModelName, ModelDelegate } from '../types';
 
@@ -13,8 +13,8 @@ export class ExtendedPrismaClient extends PrismaClient {
    * @returns FlareBuilder instance
    */
   from<T extends ModelName>(modelName: T): FlareBuilder<T> {
-    const key = (modelName.charAt(0).toLowerCase() + modelName.slice(1)) as keyof PrismaClient;
-    const model = this[key] as unknown as ModelDelegate<T>;
+    const key = (modelName.charAt(0).toLowerCase() + modelName.slice(1)) as string;
+    const model = (this as any)[key] as unknown as ModelDelegate<T>;
     if (!model) {
       throw new Error(`Model ${modelName} does not exist on PrismaClient.`);
     }
@@ -29,9 +29,9 @@ export class ExtendedPrismaClient extends PrismaClient {
    */
   async transaction<R>(
     fn: (tx: ExtendedPrismaClient) => Promise<R>,
-    options?: { maxWait?: number; timeout?: number; isolationLevel?: Prisma.TransactionIsolationLevel }
+    options?: { maxWait?: number; timeout?: number; isolationLevel?: any }
   ): Promise<R> {
-    return super.$transaction(async (tx) => {
+    return super.$transaction(async (tx: any) => {
       const extendedTx = new Proxy(tx, {
         get: (target, prop, receiver) => {
           if (prop === 'from') {

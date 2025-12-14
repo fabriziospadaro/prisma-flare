@@ -9,7 +9,7 @@ function toCamelCase(str: string): string {
 
 export function generateQueries() {
   const rootDir = findProjectRoot(process.cwd());
-  const config = loadConfig();
+  const config = loadConfig(rootDir);
 
   const schemaPath = path.join(rootDir, 'prisma', 'schema.prisma');
 
@@ -74,7 +74,11 @@ export default class ${model} extends QueryBuilder<'${modelCamel}'> {
   let pfDistDir: string;
 
   const pfPackageDir = path.join(rootDir, 'node_modules', 'prisma-flare');
-  pfDistDir = path.join(pfPackageDir, 'dist');
+  let realPfPackageDir = pfPackageDir;
+  if (fs.existsSync(pfPackageDir)) {
+    realPfPackageDir = fs.realpathSync(pfPackageDir);
+  }
+  pfDistDir = path.join(realPfPackageDir, 'dist');
 
   let dbPathWithExt = absDbPath;
   if (!absDbPath.endsWith('.ts') && !absDbPath.endsWith('.js')) {
@@ -88,6 +92,8 @@ export default class ${model} extends QueryBuilder<'${modelCamel}'> {
   let relativePathToDbForDist = path.relative(pfDistDir, dbPathWithExt);
   if (!relativePathToDbForDist.startsWith('.')) relativePathToDbForDist = './' + relativePathToDbForDist;
   relativePathToDbForDist = relativePathToDbForDist.replace(/\\/g, '/');
+
+  const relativePathToDbForDts = relativePathToDbForDist;
 
   const absModelsPath = path.join(queriesDir);
   let relativePathToModels = path.relative(pfDistDir, absModelsPath);
@@ -152,7 +158,7 @@ exports.DB = DB;
   const generatedDtsPath = path.join(pfDistDir, 'generated.d.ts');
 
   const importsDts = models.map(model => {
-    return `import ${model} from '${relativePathToModels}/${model}';`;
+    return `import ${model} from '${relativePathToModels}/${model}.ts';`;
   }).join('\n');
 
   const gettersTypes = models.map(model => {
@@ -163,7 +169,7 @@ exports.DB = DB;
   }).join('\n');
 
   const generatedDtsContent = `
-import { db } from '${relativePathToDbForDist}';
+import { db } from '${relativePathToDbForDts}';
 ${importsDts}
 
 export declare class DB {

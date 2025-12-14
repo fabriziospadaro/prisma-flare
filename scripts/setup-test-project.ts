@@ -43,7 +43,12 @@ try {
   runSilent(`npm install --no-save ${tgzPath}`, testProjectDir);
 
   console.log('Generating Prisma Flare queries...');
-  runSilent('npm run generate', testProjectDir);
+  try {
+    execSync('npm run generate', { cwd: testProjectDir, stdio: 'inherit' });
+  } catch (e) {
+    console.error('Failed to generate queries');
+    throw e;
+  }
 } catch (error) {
   console.error('Setup failed');
   process.exit(1);

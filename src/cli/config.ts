@@ -19,9 +19,9 @@ export function findProjectRoot(currentDir: string): string {
   return findProjectRoot(parentDir);
 }
 
-export function loadConfig(): PrismaFlareConfig {
-  const rootDir = findProjectRoot(process.cwd());
-  const configPath = path.join(rootDir, 'prisma-flare.config.json');
+export function loadConfig(rootDir?: string): PrismaFlareConfig {
+  const projectRoot = rootDir || findProjectRoot(process.cwd());
+  const configPath = path.join(projectRoot, 'prisma-flare.config.json');
 
   let config: PrismaFlareConfig = {
     modelsPath: 'prisma/models',

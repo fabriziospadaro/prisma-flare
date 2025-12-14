@@ -5,8 +5,16 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Handle both ESM and CJS environments
+const getDirname = () => {
+  try {
+    return path.dirname(fileURLToPath(import.meta.url));
+  } catch {
+    return __dirname;
+  }
+};
+
+const __dirname_ = getDirname();
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -55,10 +63,10 @@ function runScript(scriptName: string) {
     return;
   }
 
-  let scriptPath = path.join(__dirname, file.replace('.ts', '.js'));
+  let scriptPath = path.join(__dirname_, file.replace('.ts', '.js'));
 
   if (!fs.existsSync(scriptPath)) {
-    const cliScriptPath = path.join(__dirname, 'cli', file.replace('.ts', '.js'));
+    const cliScriptPath = path.join(__dirname_, 'cli', file.replace('.ts', '.js'));
     if (fs.existsSync(cliScriptPath)) {
       scriptPath = cliScriptPath;
     }

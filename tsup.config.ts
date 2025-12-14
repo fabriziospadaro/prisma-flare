@@ -21,6 +21,7 @@ export default defineConfig({
     '@prisma/client',
     'pg',
     'pluralize',
+    'dotenv',
   ],
   format: ['cjs', 'esm'],
   dts: true,

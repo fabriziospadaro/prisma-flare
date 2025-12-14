@@ -1,15 +1,15 @@
 // Main entry point for Prisma Flare
 export { ExtendedPrismaClient } from './core/extendedPrismaClient';
 export { default as QueryBuilder } from './core/queryBuilder';
-export { 
-  beforeCreate, 
-  afterCreate, 
-  beforeUpdate, 
-  afterUpdate, 
-  beforeDelete, 
-  afterDelete, 
+export {
+  beforeCreate,
+  afterCreate,
+  beforeUpdate,
+  afterUpdate,
+  beforeDelete,
+  afterDelete,
   afterChange,
-  afterUpsert 
+  afterUpsert
 } from './core/hooks';
 export { default as hookRegistry } from './core/hookRegistry';
 export { registerHooks, loadCallbacks } from './core/hookMiddleware';
@@ -24,6 +24,9 @@ export type {
   FindManyArgs,
   FindFirstArgs,
   CreateArgs,
+  CreateData,
+  CreateManyArgs,
+  CreateManyData,
   UpdateArgs,
   DeleteArgs,
   UpsertArgs,

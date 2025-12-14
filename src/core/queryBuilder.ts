@@ -9,7 +9,9 @@ import type {
   IncludeInput,
   DistinctInput,
   CreateArgs,
+  CreateData,
   CreateManyArgs,
+  CreateManyData,
   UpdateArgs,
   UpdateData,
   UpdateManyArgs,
@@ -297,14 +299,14 @@ export default class QueryBuilder<T extends ModelName, Args extends Record<strin
   }
 
   /** Executes create and returns the created record */
-  async create(args?: CreateArgs<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'create'>> {
-    const query = args ? { ...this.query, ...args } : this.query;
+  async create(data: CreateData<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'create'>> {
+    const query = { ...this.query, data };
     return (this.model as any).create(query);
   }
 
   /** Executes createMany and returns the count of created records */
-  async createMany(args?: CreateManyArgs<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'createMany'>> {
-    const query = args ? { ...this.query, ...args } : this.query;
+  async createMany(data: CreateManyData<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'createMany'>> {
+    const query = { ...this.query, data };
     return (this.model as any).createMany(query);
   }
 

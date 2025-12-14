@@ -25,7 +25,8 @@ describe('Hooks Integration Tests', () => {
       beforeCreate('user', callback);
 
       await DB.users.create({
-        data: { email: 'test@example.com', name: 'Test User' },
+        email: 'test@example.com',
+        name: 'Test User',
       });
 
       expect(callback).toHaveBeenCalled();
@@ -46,7 +47,8 @@ describe('Hooks Integration Tests', () => {
 
       await expect(
         DB.users.create({
-          data: { email: 'fail@example.com', name: 'Fail User' },
+          email: 'fail@example.com',
+          name: 'Fail User',
         })
       ).rejects.toThrow('Validation Failed');
 
@@ -66,14 +68,16 @@ describe('Hooks Integration Tests', () => {
       // Should fail
       await expect(
         DB.users.create({
-          data: { email: 'invalid-email', name: 'Invalid User' },
+          email: 'invalid-email',
+          name: 'Invalid User',
         })
       ).rejects.toThrow('Invalid email format');
 
       // Should succeed
       await expect(
         DB.users.create({
-          data: { email: 'valid@example.com', name: 'Valid User' },
+          email: 'valid@example.com',
+          name: 'Valid User',
         })
       ).resolves.toBeDefined();
     });
@@ -86,7 +90,8 @@ describe('Hooks Integration Tests', () => {
       afterCreate('user', callback);
 
       const user = await DB.users.create({
-        data: { email: 'test@example.com', name: 'Test User' },
+        email: 'test@example.com',
+        name: 'Test User',
       });
 
       expect(callback).toHaveBeenCalled();
@@ -110,7 +115,8 @@ describe('Hooks Integration Tests', () => {
       const callback = vi.fn();
 
       const user = await DB.users.create({
-        data: { email: 'test@example.com', name: 'Test User' },
+        email: 'test@example.com',
+        name: 'Test User',
       });
 
       afterUpdate('user', callback);
@@ -128,7 +134,8 @@ describe('Hooks Integration Tests', () => {
       const callback = vi.fn();
 
       const user = await DB.users.create({
-        data: { email: 'test@example.com', name: 'Test User' },
+        email: 'test@example.com',
+        name: 'Test User',
       });
 
       afterChange('user', 'name', callback);
@@ -150,12 +157,10 @@ describe('Hooks Integration Tests', () => {
       const callback = vi.fn();
 
       // Create 2 users with status 'pending'
-      await DB.users.createMany({
-        data: [
-          { email: 'u1@test.com', name: 'U1', status: 'pending' },
-          { email: 'u2@test.com', name: 'U2', status: 'pending' },
-        ]
-      });
+      await DB.users.createMany([
+        { email: 'u1@test.com', name: 'U1', status: 'pending' },
+        { email: 'u2@test.com', name: 'U2', status: 'pending' },
+      ]);
 
       afterChange('user', 'status', callback);
 
@@ -178,7 +183,8 @@ describe('Hooks Integration Tests', () => {
       const callback = vi.fn();
 
       const user = await DB.users.create({
-        data: { email: 'test@example.com', name: 'Test User' },
+        email: 'test@example.com',
+        name: 'Test User',
       });
 
       afterChange('user', 'name', callback);
@@ -200,7 +206,8 @@ describe('Hooks Integration Tests', () => {
       afterCreate('user', afterCallback);
 
       await DB.users.create({
-        data: { email: 'test@example.com', name: 'Test User' },
+        email: 'test@example.com',
+        name: 'Test User',
       });
 
       expect(beforeCallback).toHaveBeenCalled();

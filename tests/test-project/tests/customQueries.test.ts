@@ -14,13 +14,11 @@ describe('Custom Queries Integration Tests', () => {
   describe('UserQuery', () => {
     it('should chain custom methods with standard methods', async () => {
       // Create test users
-      await DB.users.createMany({
-        data: [
-          { email: 'alice@example.com', name: 'Alice Wonderland' },
-          { email: 'bob@example.com', name: 'Bob Builder' },
-          { email: 'charlie@example.com', name: 'Charlie Chocolate' },
-        ],
-      });
+      await DB.users.createMany([
+        { email: 'alice@example.com', name: 'Alice Wonderland' },
+        { email: 'bob@example.com', name: 'Bob Builder' },
+        { email: 'charlie@example.com', name: 'Charlie Chocolate' },
+      ]);
 
       // Test chaining: withName + order + limit
       const users = await DB.users
@@ -35,7 +33,8 @@ describe('Custom Queries Integration Tests', () => {
 
     it('should use withEmail custom method', async () => {
       await DB.users.create({
-        data: { email: 'target@example.com', name: 'Target' },
+        email: 'target@example.com',
+        name: 'Target',
       });
 
       const user = await DB.users
@@ -49,9 +48,10 @@ describe('Custom Queries Integration Tests', () => {
     it('should use createdAfter custom method', async () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
-      
+
       await DB.users.create({
-        data: { email: 'new@example.com', name: 'New User' },
+        email: 'new@example.com',
+        name: 'New User',
       });
 
       const users = await DB.users
@@ -66,16 +66,15 @@ describe('Custom Queries Integration Tests', () => {
     it('should chain custom methods for posts', async () => {
       // Create user and posts
       const user = await DB.users.create({
-        data: { email: 'author@example.com', name: 'Author' },
+        email: 'author@example.com',
+        name: 'Author',
       });
 
-      await DB.posts.createMany({
-        data: [
-          { title: 'First Post', published: true, authorId: user.id },
-          { title: 'Draft Post', published: false, authorId: user.id },
-          { title: 'Another Published', published: true, authorId: user.id },
-        ],
-      });
+      await DB.posts.createMany([
+        { title: 'First Post', published: true, authorId: user.id },
+        { title: 'Draft Post', published: false, authorId: user.id },
+        { title: 'Another Published', published: true, authorId: user.id },
+      ]);
 
       // Test chaining: published + withTitle
       const publishedPosts = await DB.posts
@@ -98,15 +97,14 @@ describe('Custom Queries Integration Tests', () => {
 
     it('should use recent custom method', async () => {
       const user = await DB.users.create({
-        data: { email: 'recent@example.com', name: 'Recent' },
+        email: 'recent@example.com',
+        name: 'Recent',
       });
 
       await DB.posts.create({
-        data: { 
-          title: 'Recent Post', 
-          published: true, 
-          authorId: user.id 
-        },
+        title: 'Recent Post',
+        published: true,
+        authorId: user.id
       });
 
       const posts = await DB.posts

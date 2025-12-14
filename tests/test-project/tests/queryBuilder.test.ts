@@ -18,10 +18,8 @@ describe('QueryBuilder Integration Tests', () => {
   describe('Basic CRUD Operations', () => {
     it('should create a user', async () => {
       const user = await DB.users.create({
-        data: {
-          email: 'test@example.com',
-          name: 'Test User',
-        },
+        email: 'test@example.com',
+        name: 'Test User',
       });
 
       expect(user).toBeDefined();
@@ -30,23 +28,19 @@ describe('QueryBuilder Integration Tests', () => {
     });
 
     it('should create many users', async () => {
-      const result = await DB.users.createMany({
-        data: [
-          { email: 'user1@example.com', name: 'User One' },
-          { email: 'user2@example.com', name: 'User Two' },
-        ],
-      });
+      const result = await DB.users.createMany([
+        { email: 'user1@example.com', name: 'User One' },
+        { email: 'user2@example.com', name: 'User Two' },
+      ]);
 
       expect(result.count).toBe(2);
     });
 
     it('should query users with where condition', async () => {
-      await DB.users.createMany({
-        data: [
-          { email: 'user1@example.com', name: 'User One' },
-          { email: 'user2@example.com', name: 'User Two' },
-        ],
-      });
+      await DB.users.createMany([
+        { email: 'user1@example.com', name: 'User One' },
+        { email: 'user2@example.com', name: 'User Two' },
+      ]);
 
       const users = await DB.users
         .where({ name: { contains: 'One' } })
@@ -58,7 +52,8 @@ describe('QueryBuilder Integration Tests', () => {
 
     it('should handle withId', async () => {
       const created = await DB.users.create({
-        data: { email: 'test@example.com', name: 'Test' },
+        email: 'test@example.com',
+        name: 'Test',
       });
 
       const found = await DB.users.withId(created.id).findFirst();
@@ -69,7 +64,8 @@ describe('QueryBuilder Integration Tests', () => {
 
     it('should update a user', async () => {
       const user = await DB.users.create({
-        data: { email: 'test@example.com', name: 'Original' },
+        email: 'test@example.com',
+        name: 'Original',
       });
 
       const updated = await DB.users.withId(user.id).update({
@@ -80,12 +76,10 @@ describe('QueryBuilder Integration Tests', () => {
     });
 
     it('should update many users', async () => {
-      await DB.users.createMany({
-        data: [
-          { email: 'u1@example.com', name: 'Old', status: 'pending' },
-          { email: 'u2@example.com', name: 'Old', status: 'pending' },
-        ],
-      });
+      await DB.users.createMany([
+        { email: 'u1@example.com', name: 'Old', status: 'pending' },
+        { email: 'u2@example.com', name: 'Old', status: 'pending' },
+      ]);
 
       const result = await DB.users.where({ status: 'pending' }).updateMany({
         status: 'active'
@@ -99,7 +93,8 @@ describe('QueryBuilder Integration Tests', () => {
 
     it('should delete a user', async () => {
       const user = await DB.users.create({
-        data: { email: 'test@example.com', name: 'To Delete' },
+        email: 'test@example.com',
+        name: 'To Delete',
       });
 
       const deleted = await DB.users.withId(user.id).delete();
@@ -110,13 +105,11 @@ describe('QueryBuilder Integration Tests', () => {
     });
 
     it('should delete many users', async () => {
-      await DB.users.createMany({
-        data: [
-          { email: 'u1@example.com', name: 'Delete Me' },
-          { email: 'u2@example.com', name: 'Delete Me' },
-          { email: 'u3@example.com', name: 'Keep Me' },
-        ],
-      });
+      await DB.users.createMany([
+        { email: 'u1@example.com', name: 'Delete Me' },
+        { email: 'u2@example.com', name: 'Delete Me' },
+        { email: 'u3@example.com', name: 'Keep Me' },
+      ]);
 
       const result = await DB.users.where({ name: 'Delete Me' }).deleteMany();
       expect(result.count).toBe(2);
@@ -144,24 +137,20 @@ describe('QueryBuilder Integration Tests', () => {
 
   describe('Query Modifiers', () => {
     it('should limit results', async () => {
-      await DB.users.createMany({
-        data: [
-          { email: '1@e.com' }, { email: '2@e.com' }, { email: '3@e.com' }
-        ],
-      });
+      await DB.users.createMany([
+        { email: '1@e.com' }, { email: '2@e.com' }, { email: '3@e.com' }
+      ]);
 
       const users = await DB.users.limit(2).findMany();
       expect(users).toHaveLength(2);
     });
 
     it('should skip results', async () => {
-      await DB.users.createMany({
-        data: [
-          { email: '1@e.com', name: 'A' },
-          { email: '2@e.com', name: 'B' },
-          { email: '3@e.com', name: 'C' }
-        ],
-      });
+      await DB.users.createMany([
+        { email: '1@e.com', name: 'A' },
+        { email: '2@e.com', name: 'B' },
+        { email: '3@e.com', name: 'C' }
+      ]);
 
       const users = await DB.users.order({ name: 'asc' }).skip(1).findMany();
       expect(users).toHaveLength(2);
@@ -169,12 +158,10 @@ describe('QueryBuilder Integration Tests', () => {
     });
 
     it('should order results', async () => {
-      await DB.users.createMany({
-        data: [
-          { email: 'b@e.com', name: 'B' },
-          { email: 'a@e.com', name: 'A' },
-        ],
-      });
+      await DB.users.createMany([
+        { email: 'b@e.com', name: 'B' },
+        { email: 'a@e.com', name: 'A' },
+      ]);
 
       const users = await DB.users.order({ name: 'asc' }).findMany();
       expect(users[0].name).toBe('A');
@@ -182,7 +169,8 @@ describe('QueryBuilder Integration Tests', () => {
 
     it('should select specific fields', async () => {
       await DB.users.create({
-        data: { email: 'test@example.com', name: 'Test' },
+        email: 'test@example.com',
+        name: 'Test',
       });
 
       const user = await DB.users.select({ email: true }).findFirst();
@@ -191,13 +179,11 @@ describe('QueryBuilder Integration Tests', () => {
     });
 
     it('should use distinct', async () => {
-      await DB.users.createMany({
-        data: [
-          { email: '1@e.com', name: 'Same' },
-          { email: '2@e.com', name: 'Same' },
-          { email: '3@e.com', name: 'Different' },
-        ],
-      });
+      await DB.users.createMany([
+        { email: '1@e.com', name: 'Same' },
+        { email: '2@e.com', name: 'Same' },
+        { email: '3@e.com', name: 'Different' },
+      ]);
     });
   });
 });

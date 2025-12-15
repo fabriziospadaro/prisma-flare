@@ -147,12 +147,12 @@ export type IncludeInput<T extends ModelName> =
   FindManyArgs<T> extends { include?: infer I } ? I : never;
 
 
-export type IncludeMap<T extends ModelName> = NonNullable<IncludeInput<T>>;
+export type IncludeMap<T extends ModelName> = string extends T ? any : NonNullable<IncludeInput<T>>;
 
-export type IncludeKey<T extends ModelName> = keyof IncludeMap<T> & string;
+export type IncludeKey<T extends ModelName> = string extends T ? string : (keyof IncludeMap<T> & string);
 
 export type IncludeValue<T extends ModelName, K extends IncludeKey<T>> =
-  IncludeMap<T>[K];
+  string extends T ? any : (K extends keyof IncludeMap<T> ? IncludeMap<T>[K] : never);
 
 /**
  * Extract Distinct input type

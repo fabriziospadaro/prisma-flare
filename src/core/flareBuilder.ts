@@ -152,7 +152,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
     RelatedArgs extends Record<string, any>
   >(
     relation: K,
-    callback: (builder: FlareBuilder<ModelName, Record<string, never>>) => FlareBuilder<ModelName, RelatedArgs>
+    callback: (builder: FlareBuilder<any, Record<string, never>>) => FlareBuilder<any, RelatedArgs>
   ): FlareBuilder<T, Args & { include: { [P in K]: RelatedArgs } }>;
 
   include<K extends IncludeKey<T>>(

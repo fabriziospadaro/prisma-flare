@@ -1,10 +1,11 @@
 import { PrismaClient } from '@prisma/client';
+import type { PrismaClientOptions } from '@prisma/client/runtime/library';
 import FlareBuilder from './flareBuilder';
 import type { ModelName, ModelDelegate } from '../types';
 
 export class ExtendedPrismaClient extends PrismaClient {
-  constructor() {
-    super();
+  constructor(options?: PrismaClientOptions) {
+    super(options);
   }
 
   /**

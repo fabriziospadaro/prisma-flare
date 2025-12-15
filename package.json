@@ -8,6 +8,7 @@
   "type": "module",
   "scripts": {
     "build": "tsup",
+    "prepare": "npm run build",
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
     "lint": "eslint src --ext .ts",

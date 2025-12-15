@@ -311,68 +311,133 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
     return new FlareBuilder<T, Args>(this.model, queryCopy);
   }
 
-  /** Executes findFirstOrThrow and returns a single record */
+  /**
+   * Finds the first record matching the query or throws an error if none found
+   * Throws a Prisma NotFoundError if no record matches the query
+   * @throws {Prisma.NotFoundError} When no record matches the query
+   * @returns Promise resolving to the found record
+   */
   async findFirstOrThrow(): Promise<NonNullable<RecordType<T>>> {
     return (this.model as any).findFirstOrThrow(this.query);
   }
 
-  /** Executes findUniqueOrThrow and returns a single record */
+  /**
+   * Finds a unique record by primary key or throws an error if not found
+   * Requires a unique constraint (typically the id field)
+   * Throws a Prisma NotFoundError if no record matches
+   * @throws {Prisma.NotFoundError} When no record is found
+   * @returns Promise resolving to the found record
+   */
   async findUniqueOrThrow(): Promise<NonNullable<RecordType<T>>> {
     return (this.model as any).findUniqueOrThrow(this.query);
   }
 
-  /** Executes findMany and returns an array of records */
+  /**
+   * Finds all records matching the query
+   * Respects all previously set query conditions (where, orderBy, take, skip, include, select, distinct)
+   * @returns Promise resolving to an array of records matching the query
+   */
   async findMany(): Promise<Prisma.Result<ModelDelegate<T>, Args, 'findMany'>> {
     return (this.model as any).findMany(this.query);
   }
 
-  /** Executes findFirst and returns a single record or null */
+  /**
+   * Finds the first record matching the query
+   * Returns null if no record matches. To throw an error instead, use findFirstOrThrow()
+   * @returns Promise resolving to the first matching record or null
+   */
   async findFirst(): Promise<Prisma.Result<ModelDelegate<T>, Args, 'findFirst'>> {
     return (this.model as any).findFirst(this.query);
   }
 
-  /** Executes findUnique and returns a single record or null */
+  /**
+   * Finds a unique record by primary key
+   * Returns null if no record is found. To throw an error instead, use findUniqueOrThrow()
+   * Requires a unique constraint in the where condition (typically the id field)
+   * @returns Promise resolving to the found record or null
+   */
   async findUnique(): Promise<Prisma.Result<ModelDelegate<T>, Args, 'findUnique'>> {
     return (this.model as any).findUnique(this.query);
   }
 
-  /** Executes create and returns the created record */
+  /**
+   * Creates a new record with the provided data
+   * Any hooks registered for 'create' operations will be triggered
+   * @param data - Data matching your Prisma model's create input
+   * @returns Promise resolving to the newly created record
+   */
   async create(data: CreateData<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'create'>> {
     const query = { ...this.query, data };
     return (this.model as any).create(query);
   }
 
-  /** Executes createMany and returns the count of created records */
+  /**
+   * Creates multiple records in a single operation
+   * More efficient than creating records individually
+   * Any hooks registered for 'create' operations will be triggered for each record
+   * @param data - Array of data objects matching your Prisma model's create input
+   * @returns Promise resolving to the count of created records
+   */
   async createMany(data: CreateManyData<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'createMany'>> {
     const query = { ...this.query, data };
     return (this.model as any).createMany(query);
   }
 
-  /** Executes delete and returns the deleted record */
+  /**
+   * Deletes a single record matching the current query conditions
+   * Requires at least one unique constraint in the where condition (typically id)
+   * Any hooks registered for 'delete' operations will be triggered
+   * @param args - Optional additional delete arguments to override query conditions
+   * @returns Promise resolving to the deleted record
+   */
   async delete(args?: DeleteArgs<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'delete'>> {
     const query = args ? { ...this.query, ...args } : this.query;
     return (this.model as any).delete(query);
   }
 
-  /** Executes deleteMany and returns the count of deleted records */
+  /**
+   * Deletes multiple records matching the current query conditions
+   * More efficient than deleting records individually
+   * Any hooks registered for 'delete' operations will be triggered for each record
+   * @param args - Optional additional delete arguments to override query conditions
+   * @returns Promise resolving to the count of deleted records
+   */
   async deleteMany(args?: DeleteManyArgs<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'deleteMany'>> {
     const query = args ? { ...this.query, ...args } : this.query;
     return (this.model as any).deleteMany(query);
   }
 
-  /** Executes update and returns the updated record */
+  /**
+   * Updates a single record matching the current query conditions
+   * Requires at least one unique constraint in the where condition (typically id)
+   * Any hooks registered for 'update' operations will be triggered
+   * @param data - Data to update, matching your Prisma model's update input
+   * @returns Promise resolving to the updated record
+   */
   async update(data: UpdateData<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'update'>> {
     const query = { ...this.query, data };
     return (this.model as any).update(query);
   }
 
-  /** Executes updateMany and returns the count of updated records */
+  /**
+   * Updates multiple records matching the current query conditions
+   * More efficient than updating records individually
+   * Any hooks registered for 'update' operations will be triggered for each record
+   * @param data - Data to update, matching your Prisma model's update input
+   * @returns Promise resolving to the count of updated records
+   */
   async updateMany(data: UpdateManyData<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'updateMany'>> {
     const query = { ...this.query, data };
     return (this.model as any).updateMany(query);
   }
 
-  /** Executes upsert and returns the upserted record */
+  /**
+   * Updates a record if it exists, otherwise creates a new record
+   * The record is uniquely identified by the where condition (typically id)
+   * Any hooks registered for 'update' or 'create' operations will be triggered accordingly
+   * @param args - Optional upsert arguments including where, update, and create data
+   * @returns Promise resolving to the upserted record
+   */
   async upsert(args?: UpsertArgs<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'upsert'>> {
     const query = args ? { ...this.query, ...args } : this.query;
     return (this.model as any).upsert(query);

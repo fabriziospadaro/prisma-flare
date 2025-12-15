@@ -283,26 +283,426 @@ const authorPosts = await DB.post
 - Leverage Prisma's query operators (`contains`, `gte`, `lte`, etc.)
 - Keep methods focused on a single responsibility
 
-## Flare Builder Methods
+## Flare Builder API Reference
 
-- `where(condition)` - Add WHERE conditions
-- `withId(id)` - Filter by ID
-- `order(orderBy)` - Add ORDER BY
-- `first(key)` - Get first record
-- `last(key)` - Get last record
-- `limit(n)` - Limit results
-- `skip(n)` - Skip records
-- `select(fields)` - Select specific fields
-- `include(relations)` - Include relations
-- `exists()` - Check if record exists
-- `only(field)` - Get single field value
-- `pluck(field)` - Extract specific field values as an array
-- `paginate(page, perPage)` - Get paginated results with metadata
-- `when(condition, callback)` - Conditionally apply query operations
-- `chunk(size, callback)` - Process large datasets in chunks
-- `clone()` - Clone the query builder
-- `count()`, `sum(field)`, `avg(field)`, `min(field)`, `max(field)` - Aggregations
-- `findMany()`, `findFirst()`, `findFirstOrThrow()`, `findUnique()`, `findUniqueOrThrow()`, `create()`, `update()`, `delete()` - Execute queries
+### Query Building Methods
+
+These methods build and customize your query before execution.
+
+#### `where(condition)`
+Adds a WHERE condition to the query with full type safety from Prisma.
+
+```typescript
+// Single condition
+const users = await DB.users.where({ isActive: true }).findMany();
+
+// Multiple conditions (merged together)
+const users = await DB.users
+  .where({ isActive: true })
+  .where({ role: 'ADMIN' })
+  .findMany();
+
+// Complex conditions with operators
+const users = await DB.users.where({
+  email: { contains: 'example.com' },
+  age: { gte: 18 }
+}).findMany();
+```
+
+#### `withId(id)`
+Filters records by ID. Throws an error if no ID is provided.
+
+```typescript
+const user = await DB.users.withId(123).findFirst();
+const post = await DB.posts.withId('uuid-string').findUnique();
+```
+
+#### `select(fields)`
+Selects specific fields to retrieve. Reduces data transfer and improves query performance.
+
+```typescript
+// Select only name and email
+const users = await DB.users
+  .select({ id: true, name: true, email: true })
+  .findMany();
+
+// Combine with other conditions
+const admin = await DB.users
+  .where({ role: 'ADMIN' })
+  .select({ id: true, email: true })
+  .findFirst();
+```
+
+#### `include(relation)` or `include(relation, callback)`
+Includes related records in the query. Can be called multiple times for nested relations.
+
+```typescript
+// Include all default fields from the relation
+const posts = await DB.posts
+  .include('author')
+  .findMany();
+
+// Include with custom query on the relation
+const posts = await DB.posts
+  .include('author', (q) => 
+    q.select({ id: true, name: true, email: true })
+  )
+  .findMany();
+
+// Multiple includes
+const posts = await DB.posts
+  .include('author')
+  .include('comments', (q) => q.limit(5))
+  .findMany();
+
+// Nested includes
+const posts = await DB.posts
+  .include('author', (q) => 
+    q.include('profile')
+  )
+  .findMany();
+```
+
+#### `order(orderBy)`
+Adds ordering to the query results.
+
+```typescript
+// Single field ascending
+const users = await DB.users.order({ createdAt: 'asc' }).findMany();
+
+// Single field descending
+const posts = await DB.posts.order({ published: 'desc' }).findMany();
+
+// Multiple fields
+const comments = await DB.comments
+  .order({ likes: 'desc', createdAt: 'asc' })
+  .findMany();
+```
+
+#### `first(key?)` and `last(key?)`
+Convenience methods to get the first or last record. Automatically sets limit to 1.
+
+```typescript
+// Get the first user (by createdAt)
+const first = await DB.users.first().findFirst();
+
+// Get the last post (by date)
+const latest = await DB.posts.last('publishedAt').findFirst();
+
+// Chain with where conditions
+const first = await DB.posts
+  .where({ published: true })
+  .first()
+  .findFirst();
+```
+
+#### `limit(n)`
+Limits the number of records returned.
+
+```typescript
+const topTen = await DB.posts.limit(10).findMany();
+```
+
+#### `skip(offset)`
+Skips a number of records (useful for custom pagination).
+
+```typescript
+const page = await DB.users.skip(20).limit(10).findMany();
+```
+
+#### `distinct(fields)`
+Returns only distinct records based on the specified fields.
+
+```typescript
+// Get distinct user emails
+const distinctEmails = await DB.users
+  .distinct({ email: true })
+  .select({ email: true })
+  .findMany();
+```
+
+#### `groupBy(fields)`
+Groups results by the specified fields (aggregation).
+
+```typescript
+const grouped = await DB.posts
+  .groupBy({ authorId: true })
+  .findMany();
+```
+
+#### `having(condition)`
+Adds a HAVING clause for aggregate queries.
+
+```typescript
+const authors = await DB.posts
+  .groupBy({ authorId: true })
+  .having({ id: { _count: { gt: 5 } } })
+  .findMany();
+```
+
+#### `getQuery()`
+Returns the current internal query object. Useful for debugging or passing to raw operations.
+
+```typescript
+const query = DB.users.where({ active: true }).getQuery();
+console.log(query);
+```
+
+### Execution Methods
+
+These methods execute the query and return results.
+
+#### `findMany()`
+Returns all records matching the query conditions.
+
+```typescript
+const allUsers = await DB.users.findMany();
+const activeUsers = await DB.users.where({ isActive: true }).findMany();
+const limited = await DB.users.limit(10).findMany();
+```
+
+#### `findFirst()`
+Returns the first record matching the query, or `null` if none found.
+
+```typescript
+const user = await DB.users.where({ email: 'user@example.com' }).findFirst();
+if (user) {
+  console.log('User found:', user.name);
+}
+```
+
+#### `findFirstOrThrow()`
+Like `findFirst()`, but throws a `Prisma.NotFoundError` if no record is found.
+
+```typescript
+try {
+  const user = await DB.users
+    .where({ email: 'admin@example.com' })
+    .findFirstOrThrow();
+} catch (error) {
+  console.error('User not found');
+}
+```
+
+#### `findUnique()`
+Finds a record by a unique constraint (typically the ID). Returns `null` if not found.
+
+```typescript
+const user = await DB.users.withId(123).findUnique();
+```
+
+#### `findUniqueOrThrow()`
+Like `findUnique()`, but throws an error if the record is not found.
+
+```typescript
+const user = await DB.users.withId(123).findUniqueOrThrow();
+```
+
+#### `create(data)`
+Creates a new record with the provided data. Triggers any registered hooks.
+
+```typescript
+const newUser = await DB.users.create({
+  email: 'new@example.com',
+  name: 'New User'
+});
+```
+
+#### `createMany(data)`
+Creates multiple records in a single operation. More efficient than individual creates.
+
+```typescript
+const result = await DB.posts.createMany({
+  data: [
+    { title: 'Post 1', content: 'Content 1', authorId: 1 },
+    { title: 'Post 2', content: 'Content 2', authorId: 1 }
+  ]
+});
+console.log(`Created ${result.count} posts`);
+```
+
+#### `update(data)`
+Updates a single record. Requires a unique constraint (typically id) in the where condition.
+
+```typescript
+const updated = await DB.users
+  .withId(123)
+  .update({ name: 'Updated Name' });
+```
+
+#### `updateMany(data)`
+Updates multiple records matching the current conditions.
+
+```typescript
+const result = await DB.users
+  .where({ status: 'inactive' })
+  .updateMany({ lastLogin: new Date() });
+console.log(`Updated ${result.count} users`);
+```
+
+#### `delete()`
+Deletes a single record. Requires a unique constraint in the where condition.
+
+```typescript
+const deleted = await DB.posts.withId(123).delete();
+```
+
+#### `deleteMany()`
+Deletes multiple records matching the current conditions.
+
+```typescript
+const result = await DB.posts
+  .where({ published: false })
+  .deleteMany();
+console.log(`Deleted ${result.count} drafts`);
+```
+
+#### `upsert(args)`
+Updates a record if it exists, otherwise creates a new one.
+
+```typescript
+const result = await DB.users
+  .where({ email: 'user@example.com' })
+  .upsert({
+    create: { email: 'user@example.com', name: 'New User' },
+    update: { lastLogin: new Date() }
+  });
+```
+
+### Aggregation Methods
+
+These methods perform calculations on your data.
+
+#### `count()`
+Counts records matching the current query.
+
+```typescript
+const totalUsers = await DB.users.count();
+const activeCount = await DB.users.where({ isActive: true }).count();
+```
+
+#### `sum(field)`
+Sums a numeric field across matching records.
+
+```typescript
+const totalSales = await DB.orders.where({ status: 'completed' }).sum('amount');
+```
+
+#### `avg(field)`
+Calculates the average of a numeric field.
+
+```typescript
+const avgPrice = await DB.products.avg('price');
+```
+
+#### `min(field)`
+Finds the minimum value of a field.
+
+```typescript
+const oldest = await DB.users.min('createdAt');
+```
+
+#### `max(field)`
+Finds the maximum value of a field.
+
+```typescript
+const latest = await DB.posts.max('publishedAt');
+```
+
+### Utility Methods
+
+These methods provide additional functionality for querying and data processing.
+
+#### `only(field)`
+Selects and returns only a specific field value from the first matching record.
+
+```typescript
+const email = await DB.users.withId(123).only('email');
+// Returns: 'user@example.com' or null
+```
+
+#### `pluck(field)`
+Extracts a specific field from all matching records as an array.
+
+```typescript
+const emails = await DB.users.where({ isActive: true }).pluck('email');
+// Returns: ['user1@example.com', 'user2@example.com', ...]
+```
+
+#### `exists(key?)`
+Checks if any record exists matching the current query.
+
+```typescript
+const hasAdmins = await DB.users.where({ role: 'ADMIN' }).exists();
+
+// Check for existence of a specific field
+const hasEmail = await DB.users.where({ id: 123 }).exists('email');
+```
+
+#### `paginate(page, perPage)`
+Returns paginated results with metadata for easy navigation.
+
+```typescript
+const result = await DB.users.where({ isActive: true }).paginate(1, 15);
+
+console.log(result.data);        // Array of users
+console.log(result.meta);        // Pagination metadata
+
+// Meta structure
+{
+  total: 150,           // Total records matching query
+  lastPage: 10,         // Total number of pages
+  currentPage: 1,       // Current page number
+  perPage: 15,          // Records per page
+  prev: null,           // Previous page number or null
+  next: 2               // Next page number or null
+}
+
+// Fetch next page
+const nextPage = await DB.users
+  .where({ isActive: true })
+  .paginate(result.meta.next, 15);
+```
+
+#### `when(condition, callback)`
+Conditionally applies query operations based on a boolean or function.
+
+```typescript
+const search = req.query.search;
+const role = req.query.role;
+
+const users = await DB.users
+  .when(!!search, (q) => q.where({ name: { contains: search } }))
+  .when(!!role, (q) => q.where({ role }))
+  .findMany();
+
+// With function condition
+const users = await DB.users
+  .when(() => isAdmin(user), (q) => q.select({ id: true, email: true, role: true }))
+  .findMany();
+```
+
+#### `chunk(size, callback)`
+Processes large datasets in chunks to avoid memory issues.
+
+```typescript
+await DB.posts.chunk(100, async (posts) => {
+  // Process each chunk of 100 posts
+  for (const post of posts) {
+    await sendNotification(post.authorId);
+  }
+});
+```
+
+#### `clone()`
+Creates an independent copy of the current query builder.
+
+```typescript
+const baseQuery = DB.posts.where({ published: true });
+
+const recent = baseQuery.clone().order({ createdAt: 'desc' }).findMany();
+const popular = baseQuery.clone().order({ likes: 'desc' }).findMany();
+```
 
 ## License
 

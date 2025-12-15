@@ -2,6 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 
 /**
  * Extract model names from PrismaClient
+ * Note: $use was removed in Prisma 7, but we keep it here for backwards compatibility
  */
 type RawPrismaClientKeys = Exclude<
   Extract<keyof PrismaClient, string>,

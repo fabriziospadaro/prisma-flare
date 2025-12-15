@@ -20,6 +20,18 @@ npm install prisma-flare
 
 Ensure you have `@prisma/client` installed as a peer dependency.
 
+### Prisma Version Compatibility
+
+| Prisma Version | prisma-flare Support |
+|----------------|----------------------|
+| 5.x and below  | ✅ Full support      |
+| 6.x and below  | ✅ Full support      |
+| 7.x+           | ✅ Full support      |
+
+prisma-flare automatically detects your Prisma version at runtime and uses the appropriate API:
+- **Prisma ≤6**: Uses the legacy `$use()` middleware API
+- **Prisma 7+**: Uses the new client extensions API
+
 ## Setup
 
 ### 1. Initialize your Client
@@ -30,13 +42,13 @@ Replace your standard `PrismaClient` with `ExtendedPrismaClient` in your databas
 // src/db.ts
 import { ExtendedPrismaClient, registerHooks } from 'prisma-flare';
 
-const db = new ExtendedPrismaClient();
-
-// Initialize hooks middleware
-registerHooks(db);
+// Initialize hooks middleware (returns extended client for Prisma 7+)
+const db = registerHooks(new ExtendedPrismaClient());
 
 export { db };
 ```
+
+> **Note**: In Prisma 7+, `registerHooks()` returns a new extended client instance. Always use the returned value. This pattern is backwards compatible with Prisma 6 as well.
 
 ### 2. Generate Query Classes
 
@@ -178,6 +190,25 @@ afterChange('Post', 'published', async (oldValue, newValue, record) => {
     console.log(`Post "${record.title}" was published!`);
   }
 });
+```
+
+#### Advanced Hook Registration
+
+For more control over hook registration, prisma-flare exports additional utilities:
+
+```typescript
+import { 
+  registerHooks,           // Auto-detects Prisma version (recommended)
+  registerHooksLegacy,     // Force legacy $use API (Prisma ≤6 only)
+  createHooksExtension     // Get raw extension for manual use
+} from 'prisma-flare';
+
+// Option 1: Auto-detect (recommended)
+const db = registerHooks(new ExtendedPrismaClient());
+
+// Option 2: Manual extension (Prisma 7+ only)
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient().$extends(createHooksExtension(new PrismaClient()));
 ```
 
 ## CLI Utilities

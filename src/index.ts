@@ -12,7 +12,7 @@ export {
   afterUpsert
 } from './core/hooks';
 export { default as hookRegistry } from './core/hookRegistry';
-export { registerHooks, loadCallbacks } from './core/hookMiddleware';
+export { registerHooks, registerHooksLegacy, createHooksExtension, loadCallbacks } from './core/hookMiddleware';
 export { registry as dbAdapterRegistry } from './core/adapters';
 export type { DatabaseAdapter } from './core/adapters';
 

@@ -7,6 +7,39 @@ import type {
   ModelName
 } from '../types';
 
+/**
+ * Configuration options for the hook system.
+ */
+export interface HookConfig {
+  /**
+   * Whether column-level hooks (afterChange) are enabled.
+   * Set to false to disable all column hooks globally.
+   * @default true
+   */
+  enableColumnHooks: boolean;
+
+  /**
+   * Maximum number of records to re-fetch for column hooks on updateMany.
+   * If an updateMany affects more records than this limit, column hooks
+   * will be skipped and a warning logged.
+   * Set to 0 or Infinity to disable the limit.
+   * @default 1000
+   */
+  maxRefetch: number;
+
+  /**
+   * Whether to log warnings when hooks are skipped.
+   * @default true
+   */
+  warnOnSkip: boolean;
+}
+
+const DEFAULT_CONFIG: HookConfig = {
+  enableColumnHooks: true,
+  maxRefetch: 1000,
+  warnOnSkip: true,
+};
+
 class HookRegistry {
   private hooks: {
     before: Record<string, BeforeHookCallback[]>;
@@ -19,6 +52,7 @@ class HookRegistry {
 
   private fieldCache: Record<string, Record<string, true>>;
   private modelsWithColumnHooks: Set<string>;
+  private config: HookConfig;
 
   constructor() {
     this.hooks = {
@@ -30,6 +64,34 @@ class HookRegistry {
     };
     this.fieldCache = {};
     this.modelsWithColumnHooks = new Set();
+    this.config = { ...DEFAULT_CONFIG };
+  }
+
+  /**
+   * Configure the hook system.
+   * @param config - Partial configuration to merge with defaults
+   * 
+   * @example
+   * // Disable column hooks globally for performance
+   * hookRegistry.configure({ enableColumnHooks: false });
+   * 
+   * @example
+   * // Increase maxRefetch limit
+   * hookRegistry.configure({ maxRefetch: 5000 });
+   * 
+   * @example
+   * // Disable limit entirely (use with caution)
+   * hookRegistry.configure({ maxRefetch: Infinity });
+   */
+  configure(config: Partial<HookConfig>): void {
+    this.config = { ...this.config, ...config };
+  }
+
+  /**
+   * Get current configuration.
+   */
+  getConfig(): Readonly<HookConfig> {
+    return this.config;
   }
 
   addHook(
@@ -92,6 +154,37 @@ class HookRegistry {
     return this.modelsWithColumnHooks.has(model);
   }
 
+  /**
+   * Check if column hooks should run for an operation.
+   * Takes into account global config and record count limits.
+   * 
+   * @param model - The model name
+   * @param recordCount - Number of records affected (for maxRefetch check)
+   * @returns Whether column hooks should execute
+   */
+  shouldRunColumnHooks(model: ModelName, recordCount: number): boolean {
+    if (!this.config.enableColumnHooks) {
+      return false;
+    }
+
+    if (!this.modelsWithColumnHooks.has(model)) {
+      return false;
+    }
+
+    if (this.config.maxRefetch > 0 && recordCount > this.config.maxRefetch) {
+      if (this.config.warnOnSkip) {
+        console.warn(
+          `[prisma-flare] Skipping column hooks for ${model}: ` +
+          `${recordCount} records exceeds maxRefetch limit of ${this.config.maxRefetch}. ` +
+          `Configure via hookRegistry.configure({ maxRefetch: ... })`
+        );
+      }
+      return false;
+    }
+
+    return true;
+  }
+
   getRelevantFields(model: ModelName): Record<string, true> {
     if (this.fieldCache[model]) {
       return this.fieldCache[model];
@@ -126,6 +219,7 @@ class HookRegistry {
     this.columnHooks.afterChange = {};
     this.fieldCache = {};
     this.modelsWithColumnHooks.clear();
+    this.config = { ...DEFAULT_CONFIG };
   }
 }
 

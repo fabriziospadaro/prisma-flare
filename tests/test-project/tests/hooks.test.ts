@@ -195,6 +195,34 @@ describe('Hooks Integration Tests', () => {
 
       expect(callback).not.toHaveBeenCalled();
     });
+
+    it('should trigger afterChange even when update uses select (re-fetch fix)', async () => {
+      const callback = vi.fn();
+
+      const user = await DB.users.create({
+        email: 'test@example.com',
+        name: 'Original Name',
+        status: 'pending',
+      });
+
+      afterChange('user', 'status', callback);
+
+      // Update with select that doesn't include the 'status' field
+      // Previously this would fail because result only contained 'id' and 'email'
+      await DB.users
+        .withId(user.id)
+        .select({ id: true, email: true })
+        .update({ status: 'active' });
+
+      // Hook should still fire because we re-fetch the relevant fields
+      expect(callback).toHaveBeenCalled();
+      expect(callback).toHaveBeenCalledWith(
+        'pending',
+        'active',
+        expect.objectContaining({ id: user.id }),
+        expect.anything()
+      );
+    });
   });
 
   describe('Multiple Hooks', () => {
@@ -212,6 +240,89 @@ describe('Hooks Integration Tests', () => {
 
       expect(beforeCallback).toHaveBeenCalled();
       expect(afterCallback).toHaveBeenCalled();
+    });
+  });
+
+  describe('Hook Configuration', () => {
+    it('should allow disabling column hooks globally', async () => {
+      const callback = vi.fn();
+
+      const user = await DB.users.create({
+        email: 'test@example.com',
+        name: 'Test User',
+        status: 'pending',
+      });
+
+      afterChange('user', 'status', callback);
+
+      // Disable column hooks
+      hookRegistry.configure({ enableColumnHooks: false });
+
+      await DB.users.where({ id: user.id }).update({
+        status: 'active'
+      });
+
+      // Hook should NOT fire because column hooks are disabled
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('should respect maxRefetch limit', async () => {
+      const callback = vi.fn();
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+
+      // Create more users than the limit
+      await DB.users.createMany([
+        { email: 'u1@test.com', name: 'U1', status: 'pending' },
+        { email: 'u2@test.com', name: 'U2', status: 'pending' },
+        { email: 'u3@test.com', name: 'U3', status: 'pending' },
+      ]);
+
+      afterChange('user', 'status', callback);
+
+      // Set very low maxRefetch
+      hookRegistry.configure({ maxRefetch: 2, warnOnSkip: true });
+
+      await DB.users.where({ status: 'pending' }).updateMany({
+        status: 'active'
+      });
+
+      // Hook should NOT fire because record count exceeds limit
+      expect(callback).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Skipping column hooks')
+      );
+
+      warnSpy.mockRestore();
+    });
+
+    it('should run column hooks when under maxRefetch limit', async () => {
+      const callback = vi.fn();
+
+      await DB.users.createMany([
+        { email: 'u1@test.com', name: 'U1', status: 'pending' },
+        { email: 'u2@test.com', name: 'U2', status: 'pending' },
+      ]);
+
+      afterChange('user', 'status', callback);
+
+      // Set maxRefetch higher than record count
+      hookRegistry.configure({ maxRefetch: 10 });
+
+      await DB.users.where({ status: 'pending' }).updateMany({
+        status: 'active'
+      });
+
+      // Hook should fire for both records
+      expect(callback).toHaveBeenCalledTimes(2);
+    });
+
+    it('should expose current configuration', () => {
+      hookRegistry.configure({ maxRefetch: 5000, enableColumnHooks: true });
+
+      const config = hookRegistry.getConfig();
+
+      expect(config.maxRefetch).toBe(5000);
+      expect(config.enableColumnHooks).toBe(true);
     });
   });
 });

@@ -5,11 +5,49 @@ import fs from 'fs';
 import path from 'path';
 
 /**
+ * Checks if the current runtime supports TypeScript imports natively.
+ * Returns true if running under ts-node, tsx, or Bun.
+ */
+function supportsTypeScriptImports(): boolean {
+  // Check for ts-node
+  if (process.env.TS_NODE || (Symbol.for('ts-node.register.instance') in process)) {
+    return true;
+  }
+  // Check for tsx
+  if (process.env.TSX) {
+    return true;
+  }
+  // Check for Bun
+  if (typeof (globalThis as any).Bun !== 'undefined') {
+    return true;
+  }
+  // Check for Vitest
+  if (process.env.VITEST) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Loads callback files from a specified directory.
  * Users can create a 'callbacks' directory in their project and call this function.
+ * 
+ * IMPORTANT: This function is async - you MUST await it before querying to ensure
+ * all hooks are registered.
+ * 
+ * In production Node.js environments, only .js files are loaded.
+ * TypeScript files (.ts) are only loaded when running under ts-node, tsx, Bun, or Vitest.
+ * Make sure to compile your TypeScript callbacks to JavaScript for production.
+ * 
  * @param callbacksDir - Path to the callbacks directory
+ * @returns Promise that resolves when all callbacks are loaded
+ * 
+ * @example
+ * // In your app initialization:
+ * await loadCallbacks();
+ * // Now safe to query - all hooks are registered
  */
-export function loadCallbacks(callbacksDir?: string): void {
+export async function loadCallbacks(callbacksDir?: string): Promise<void> {
   if (!callbacksDir) {
     // Default: try to load from callbacks directory relative to where this is called
     callbacksDir = path.join(process.cwd(), 'prisma', 'callbacks');
@@ -21,12 +59,25 @@ export function loadCallbacks(callbacksDir?: string): void {
     return;
   }
 
-  fs.readdirSync(callbacksDir).forEach(async file => {
-    if (file.endsWith('.js') || file.endsWith('.ts')) {
-      const filePath = path.join(callbacksDir, file);
+  const canImportTs = supportsTypeScriptImports();
+  const files = fs.readdirSync(callbacksDir);
+
+  // Properly await all imports sequentially to ensure deterministic load order
+  for (const file of files) {
+    const filePath = path.join(callbacksDir, file);
+
+    if (file.endsWith('.js')) {
       await import(filePath);
+    } else if (file.endsWith('.ts') && canImportTs) {
+      await import(filePath);
+    } else if (file.endsWith('.ts') && !canImportTs) {
+      console.warn(
+        `Skipping TypeScript callback file: ${file}. ` +
+        `TypeScript imports require ts-node, tsx, or Bun. ` +
+        `Compile to JavaScript for production use.`
+      );
     }
-  });
+  }
 }
 
 async function fetchAffectedRecords(
@@ -66,10 +117,17 @@ async function executeHookLogic(
 
   let prevData: any[] = [];
   let fields: Record<string, true> | undefined;
+  let shouldRunColumnHooks = false;
 
-  if (hasColumnHooks && (action === 'update' || action === 'updateMany')) {
+  // Check if we should run column hooks (respects config + limits)
+  const isUpdateAction = action === 'update' || action === 'updateMany';
+
+  if (hasColumnHooks && isUpdateAction) {
     fields = hookRegistry.getRelevantFields(modelName);
     prevData = await fetchAffectedRecords(prisma, modelName, args.where, fields);
+
+    // Check config and record count limits
+    shouldRunColumnHooks = hookRegistry.shouldRunColumnHooks(modelName, prevData.length);
   }
 
   // Run before hooks (blocking, can throw)
@@ -77,18 +135,14 @@ async function executeHookLogic(
 
   const result = await next();
 
-  if (hasColumnHooks && (action === 'update' || action === 'updateMany')) {
+  if (shouldRunColumnHooks && prevData.length > 0) {
     let newData: any[] = [];
 
-    if (action === 'update') {
-      newData = [result];
-    } else {
-      // Use IDs from prevData to ensure we find the same records even if filter fields changed
-      const ids = prevData.map(r => r.id);
-      if (ids.length > 0) {
-        newData = await fetchAffectedRecords(prisma, modelName, { id: { in: ids } });
-      }
-    }
+    // Always re-fetch updated records to ensure we have all relevant fields
+    // This fixes the issue where update() with select/include returns only partial data,
+    // causing afterChange hooks to miss column changes not in the returned result
+    const ids = prevData.map(r => r.id);
+    newData = await fetchAffectedRecords(prisma, modelName, { id: { in: ids } }, fields);
 
     for (let i = 0; i < prevData.length; i++) {
       const prevRecord = prevData[i];

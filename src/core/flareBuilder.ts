@@ -27,6 +27,97 @@ import { IncludeKey } from '../types/prisma.types';
 import { modelRegistry } from './modelRegistry';
 
 /**
+ * Deep clones an object, handling Date, BigInt, Buffer, Map, Set and other non-JSON-safe types.
+ * Uses structuredClone when available (Node 17+), with a manual fallback.
+ */
+function deepClone<T>(obj: T): T {
+  // Primitives and null
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+
+  // BigInt check must come before object check (typeof bigint !== 'object')
+  // but keeping it here for clarity - it's actually caught above
+  if (typeof obj === 'bigint') {
+    return obj;
+  }
+
+  // Use structuredClone if available (Node 17+, modern browsers)
+  if (typeof structuredClone === 'function') {
+    try {
+      return structuredClone(obj);
+    } catch {
+      // Fall through to manual clone for unsupported types
+    }
+  }
+
+  // Manual deep clone fallback
+  if (obj instanceof Date) {
+    return new Date(obj.getTime()) as T;
+  }
+
+  if (obj instanceof RegExp) {
+    return new RegExp(obj.source, obj.flags) as T;
+  }
+
+  // Buffer (Node.js)
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(obj)) {
+    return Buffer.from(obj) as T;
+  }
+
+  // ArrayBuffer
+  if (obj instanceof ArrayBuffer) {
+    return obj.slice(0) as T;
+  }
+
+  // TypedArrays (Uint8Array, Int32Array, etc.)
+  if (ArrayBuffer.isView(obj) && !(obj instanceof DataView)) {
+    const TypedArrayConstructor = obj.constructor as new (buffer: ArrayBuffer) => typeof obj;
+    // Handle SharedArrayBuffer (can't clone, just reference) vs ArrayBuffer (clone it)
+    const buffer = obj.buffer instanceof ArrayBuffer ? obj.buffer.slice(0) : obj.buffer;
+    return new TypedArrayConstructor(buffer as ArrayBuffer) as T;
+  }
+
+  // Map
+  if (obj instanceof Map) {
+    const clonedMap = new Map();
+    obj.forEach((value, key) => {
+      clonedMap.set(deepClone(key), deepClone(value));
+    });
+    return clonedMap as T;
+  }
+
+  // Set
+  if (obj instanceof Set) {
+    const clonedSet = new Set();
+    obj.forEach(value => {
+      clonedSet.add(deepClone(value));
+    });
+    return clonedSet as T;
+  }
+
+  // Arrays
+  if (Array.isArray(obj)) {
+    return obj.map(item => deepClone(item)) as T;
+  }
+
+  // Handle Prisma Decimal (has toDecimalPlaces method - immutable, safe to reuse)
+  if (typeof (obj as any).toDecimalPlaces === 'function') {
+    return obj;
+  }
+
+  // Plain object - use Object.create to preserve prototype chain
+  const prototype = Object.getPrototypeOf(obj);
+  const cloned: any = Object.create(prototype);
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      cloned[key] = deepClone((obj as any)[key]);
+    }
+  }
+  return cloned;
+}
+
+/**
  * Global interface for relation-to-model mapping.
  * This is augmented by prisma-flare/generated to provide type-safe includes.
  * 
@@ -64,23 +155,177 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
   }
 
   /**
-   * Adds a where condition to the query with type safety from Prisma
+   * Adds a where condition to the query with type safety from Prisma.
+   * Multiple where() calls are composed using AND logic to avoid silent overwrites.
    * @param condition - Where filter matching your Prisma model
+   * 
+   * @example
+   * // These conditions are AND-ed together:
+   * DB.posts
+   *   .where({ published: true })
+   *   .where({ authorId: 1 })
+   *   .findMany()
+   * // Equivalent to: { AND: [{ published: true }, { authorId: 1 }] }
    */
   where(condition: WhereInput<T>): FlareBuilder<T, Args & { where: WhereInput<T> }> {
-    this.query.where = { ...this.query.where, ...(condition as any) };
+    if (!this.query.where || Object.keys(this.query.where).length === 0) {
+      // First where condition - set directly
+      this.query.where = condition as any;
+    } else {
+      // Compose with AND to avoid silent overwrites
+      const prevWhere = this.query.where;
+      this.query.where = { AND: [prevWhere, condition] } as any;
+    }
     return this as any;
   }
 
   /**
-   * Adds a where condition to the query for the specified id
+   * Adds a where condition using AND logic (explicit alias for where())
+   * @param condition - Where filter matching your Prisma model
+   * 
+   * @example
+   * DB.posts
+   *   .where({ published: true })
+   *   .andWhere({ createdAt: { gte: new Date('2024-01-01') } })
+   *   .findMany()
+   */
+  andWhere(condition: WhereInput<T>): FlareBuilder<T, Args & { where: WhereInput<T> }> {
+    return this.where(condition);
+  }
+
+  /**
+   * Adds a where condition using OR logic.
+   * 
+   * ⚠️ **IMPORTANT**: `orWhere()` wraps the *entire* accumulated where clause:
+   * `OR([prevWhere, condition])`. This means:
+   * 
+   * ```ts
+   * .where(A).orWhere(B).where(C)  // becomes: (A OR B) AND C
+   * ```
+   * 
+   * For complex boolean logic, prefer `whereGroup()` / `orWhereGroup()` for explicit control.
+   * 
+   * @param condition - Where filter matching your Prisma model
+   * 
+   * @example
+   * // Simple case - OK:
+   * DB.posts
+   *   .where({ published: true })
+   *   .orWhere({ featured: true })
+   *   .findMany()
+   * // Result: published OR featured
+   * 
+   * @example
+   * // For complex logic, use whereGroup instead:
+   * DB.posts
+   *   .where({ published: true })
+   *   .whereGroup(qb => qb
+   *     .where({ category: 'news' })
+   *     .orWhere({ category: 'tech' })
+   *   )
+   *   .findMany()
+   * // Result: published AND (category='news' OR category='tech')
+   */
+  orWhere(condition: WhereInput<T>): FlareBuilder<T, Args & { where: WhereInput<T> }> {
+    if (!this.query.where || Object.keys(this.query.where).length === 0) {
+      this.query.where = condition as any;
+    } else {
+      const prevWhere = this.query.where;
+      this.query.where = { OR: [prevWhere, condition] } as any;
+    }
+    return this as any;
+  }
+
+  /**
+   * Creates a grouped where condition using a callback.
+   * Use this for explicit control over boolean logic grouping.
+   * The callback receives a fresh builder - its accumulated where becomes a single group.
+   * 
+   * @param callback - Function that builds the grouped condition
+   * @param mode - How to combine with existing where: 'AND' (default) or 'OR'
+   * 
+   * @example
+   * // (status = 'active') AND (name LIKE 'A%' OR name LIKE 'B%')
+   * DB.users
+   *   .where({ status: 'active' })
+   *   .whereGroup(qb => qb
+   *     .where({ name: { startsWith: 'A' } })
+   *     .orWhere({ name: { startsWith: 'B' } })
+   *   )
+   *   .findMany()
+   * 
+   * @example
+   * // (status = 'active') OR (role = 'admin' AND verified = true)
+   * DB.users
+   *   .where({ status: 'active' })
+   *   .whereGroup(qb => qb
+   *     .where({ role: 'admin' })
+   *     .where({ verified: true })
+   *   , 'OR')
+   *   .findMany()
+   */
+  whereGroup(
+    callback: (builder: FlareBuilder<T, {}>) => FlareBuilder<T, any>,
+    mode: 'AND' | 'OR' = 'AND'
+  ): FlareBuilder<T, Args & { where: WhereInput<T> }> {
+    // Create a fresh builder for the group
+    const groupBuilder = new FlareBuilder<T, {}>(this.model, {});
+    callback(groupBuilder);
+
+    const groupWhere = groupBuilder.getQuery().where;
+
+    if (!groupWhere || Object.keys(groupWhere).length === 0) {
+      return this as any;
+    }
+
+    if (!this.query.where || Object.keys(this.query.where).length === 0) {
+      this.query.where = groupWhere;
+    } else {
+      const prevWhere = this.query.where;
+      this.query.where = { [mode]: [prevWhere, groupWhere] } as any;
+    }
+
+    return this as any;
+  }
+
+  /**
+   * Alias for whereGroup with OR mode.
+   * Creates a grouped condition that's OR-ed with existing where.
+   * 
+   * @param callback - Function that builds the grouped condition
+   * 
+   * @example
+   * // (published = true) OR (authorId = 1 AND draft = true)
+   * DB.posts
+   *   .where({ published: true })
+   *   .orWhereGroup(qb => qb
+   *     .where({ authorId: 1 })
+   *     .where({ draft: true })
+   *   )
+   *   .findMany()
+   */
+  orWhereGroup(
+    callback: (builder: FlareBuilder<T, {}>) => FlareBuilder<T, any>
+  ): FlareBuilder<T, Args & { where: WhereInput<T> }> {
+    return this.whereGroup(callback, 'OR');
+  }
+
+  /**
+   * Adds a where condition to the query for the specified id.
+   * Uses the same AND composition as where() for consistency.
    * @param id - The id to search for
    */
   withId(id: number | string): FlareBuilder<T, Args & { where: { id: number | string } }> {
     if (!id) {
       throw new Error('Id is required');
     }
-    this.query.where = { ...this.query.where, id };
+    // Compose using where() for consistent AND logic
+    if (!this.query.where || Object.keys(this.query.where).length === 0) {
+      this.query.where = { id } as any;
+    } else {
+      const prevWhere = this.query.where;
+      this.query.where = { AND: [prevWhere, { id }] } as any;
+    }
     return this as any;
   }
 
@@ -337,10 +582,11 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
   }
 
   /**
-   * Clones the current query builder instance
+   * Clones the current query builder instance.
+   * Uses structuredClone for proper handling of Date, BigInt, etc.
    */
   clone(): FlareBuilder<T, Args> {
-    const queryCopy = JSON.parse(JSON.stringify(this.query));
+    const queryCopy = deepClone(this.query);
     return new FlareBuilder<T, Args>(this.model, queryCopy);
   }
 

@@ -226,6 +226,35 @@ afterChange('Post', 'published', async (oldValue, newValue, record) => {
 });
 ```
 
+#### Hook Configuration
+
+Configure hook behavior globally, especially useful for performance tuning:
+
+```typescript
+import { hookRegistry } from 'prisma-flare';
+
+// Disable column hooks globally (for performance-critical paths)
+hookRegistry.configure({ enableColumnHooks: false });
+
+// Limit re-fetching on large updateMany operations
+// Column hooks will be skipped if more than 1000 records are affected
+hookRegistry.configure({ maxRefetch: 1000 });
+
+// Disable the warning when hooks are skipped
+hookRegistry.configure({ warnOnSkip: false });
+
+// Check current configuration
+const config = hookRegistry.getConfig();
+```
+
+**Configuration options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `enableColumnHooks` | `true` | Enable/disable all column-level hooks |
+| `maxRefetch` | `1000` | Max records to re-fetch for column hooks. Prevents expensive operations on large `updateMany`. Set to `Infinity` to disable limit. |
+| `warnOnSkip` | `true` | Log warning when hooks are skipped due to limits |
+
 #### Advanced Hook Registration
 
 For more control over hook registration, prisma-flare exports additional utilities:
@@ -373,6 +402,95 @@ const users = await DB.users.where({
   age: { gte: 18 }
 }).findMany();
 ```
+
+### Boolean Logic (AND/OR/NOT)
+
+Prisma Flare provides explicit control over boolean logic. Understanding how conditions compose is critical for correct queries.
+
+#### How `where()` chaining works
+
+Multiple `where()` calls are composed using **AND** logic:
+
+```typescript
+// These are equivalent:
+DB.users.where({ status: 'active' }).where({ role: 'admin' })
+// → { AND: [{ status: 'active' }, { role: 'admin' }] }
+```
+
+#### `orWhere(condition)` - ⚠️ Advanced
+
+`orWhere()` wraps the **entire accumulated where** in an OR:
+
+```typescript
+DB.users.where({ status: 'active' }).orWhere({ role: 'admin' })
+// → { OR: [{ status: 'active' }, { role: 'admin' }] }
+```
+
+**⚠️ Beware:** Adding more conditions after `orWhere` can be confusing:
+
+```typescript
+DB.users
+  .where({ status: 'active' })  // A
+  .orWhere({ role: 'admin' })   // OR(A, B)
+  .where({ verified: true })    // AND(OR(A, B), C)
+// Result: (status='active' OR role='admin') AND verified=true
+```
+
+For complex logic, prefer `whereGroup()` for explicit control.
+
+#### `whereGroup(callback)` - Recommended for complex logic
+
+Creates an explicit group that's AND-ed with the existing where:
+
+```typescript
+// (status = 'active') AND (role = 'admin' OR role = 'moderator')
+const users = await DB.users
+  .where({ status: 'active' })
+  .whereGroup(qb => qb
+    .where({ role: 'admin' })
+    .orWhere({ role: 'moderator' })
+  )
+  .findMany();
+```
+
+#### `orWhereGroup(callback)`
+
+Creates an explicit group that's OR-ed with the existing where:
+
+```typescript
+// (status = 'active') OR (role = 'admin' AND verified = true)
+const users = await DB.users
+  .where({ status: 'active' })
+  .orWhereGroup(qb => qb
+    .where({ role: 'admin' })
+    .where({ verified: true })
+  )
+  .findMany();
+```
+
+#### NOT conditions
+
+Use Prisma's `NOT` operator inside `where()`:
+
+```typescript
+// Active users who are NOT banned
+const users = await DB.users
+  .where({ status: 'active' })
+  .where({ NOT: { role: 'banned' } })
+  .findMany();
+```
+
+#### Quick Reference
+
+| Pattern | Result |
+|---------|--------|
+| `.where(A).where(B)` | `A AND B` |
+| `.where(A).orWhere(B)` | `A OR B` |
+| `.where(A).orWhere(B).where(C)` | `(A OR B) AND C` |
+| `.where(A).whereGroup(q => q.where(B).orWhere(C))` | `A AND (B OR C)` |
+| `.where(A).orWhereGroup(q => q.where(B).where(C))` | `A OR (B AND C)` |
+
+**Rule of thumb:** For anything beyond simple AND chains or single OR, use `whereGroup()`/`orWhereGroup()`.
 
 #### `withId(id)`
 Filters records by ID. Throws an error if no ID is provided.

@@ -111,6 +111,18 @@ async function executeHookLogic(
     return next();
   }
 
+  // Strip __flare meta key before passing to Prisma (used for per-call hook config)
+  // Check both args level (for operations like create) and args.data level (for update)
+  let flareOptions = args?.__flare;
+  if (args?.__flare) {
+    delete args.__flare;
+  }
+  // Also check inside data for update operations
+  if (args?.data?.__flare) {
+    flareOptions = args.data.__flare;
+    delete args.data.__flare;
+  }
+
   // Prisma gives us "User" but we need "user" for the lowercase key
   const modelName = model.toLowerCase() as ModelName;
   const hasColumnHooks = hookRegistry.hasColumnHooks(modelName);
@@ -119,15 +131,15 @@ async function executeHookLogic(
   let fields: Record<string, true> | undefined;
   let shouldRunColumnHooks = false;
 
-  // Check if we should run column hooks (respects config + limits)
+  // Check if we should run column hooks (respects config + limits + per-call options)
   const isUpdateAction = action === 'update' || action === 'updateMany';
 
   if (hasColumnHooks && isUpdateAction) {
     fields = hookRegistry.getRelevantFields(modelName);
     prevData = await fetchAffectedRecords(prisma, modelName, args.where, fields);
 
-    // Check config and record count limits
-    shouldRunColumnHooks = hookRegistry.shouldRunColumnHooks(modelName, prevData.length);
+    // Check config, record count limits, and per-call skip option
+    shouldRunColumnHooks = hookRegistry.shouldRunColumnHooks(modelName, prevData.length, { __flare: flareOptions });
   }
 
   // Run before hooks (blocking, can throw)

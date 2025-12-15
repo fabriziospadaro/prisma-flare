@@ -255,6 +255,44 @@ const config = hookRegistry.getConfig();
 | `maxRefetch` | `1000` | Max records to re-fetch for column hooks. Prevents expensive operations on large `updateMany`. Set to `Infinity` to disable limit. |
 | `warnOnSkip` | `true` | Log warning when hooks are skipped due to limits |
 
+#### Per-Call Hook Skip
+
+For fine-grained control, you can skip column hooks on a per-call basis without changing global configuration:
+
+```typescript
+// Skip column hooks for this specific update only
+await DB.users.withId(userId).update({
+  status: 'active',
+  // This meta key is stripped before reaching Prisma
+  __flare: { skipColumnHooks: true }
+} as any);
+
+// Regular hooks (beforeUpdate, afterUpdate) still fire
+// Only column-level hooks (afterChange) are skipped
+```
+
+This is useful for:
+- Batch migrations where you don't want to trigger side effects
+- Performance-critical paths where you know the column change doesn't matter
+- Avoiding recursive hook triggers
+
+#### Smart Value Comparison
+
+Column hooks use intelligent comparison to detect real changes:
+
+| Type | Comparison Method |
+|------|-------------------|
+| `Date` | Compares by `.getTime()` (milliseconds) |
+| `Decimal` (Prisma) | Compares by `.toString()` |
+| `null` / `undefined` | Strict equality |
+| Objects/JSON | Deep comparison via `JSON.stringify` |
+| Primitives | Strict equality (`===`) |
+
+This prevents false positives when:
+- Dates are re-assigned but represent the same moment
+- Decimal values are equivalent but different instances
+- JSON fields are structurally identical
+
 #### Advanced Hook Registration
 
 For more control over hook registration, prisma-flare exports additional utilities:
@@ -426,17 +464,30 @@ DB.users.where({ status: 'active' }).orWhere({ role: 'admin' })
 // → { OR: [{ status: 'active' }, { role: 'admin' }] }
 ```
 
-**⚠️ Beware:** Adding more conditions after `orWhere` can be confusing:
+**⚠️ Common Mistake:** Adding more conditions after `orWhere` can produce unexpected results:
 
 ```typescript
-DB.users
-  .where({ status: 'active' })  // A
-  .orWhere({ role: 'admin' })   // OR(A, B)
-  .where({ verified: true })    // AND(OR(A, B), C)
-// Result: (status='active' OR role='admin') AND verified=true
+// ❌ WRONG: User thinks "active users named Alice or Bob"
+const wrong = await DB.users
+  .where({ status: 'active' })
+  .where({ name: 'Alice' })
+  .orWhere({ name: 'Bob' })  // This OR-wraps EVERYTHING before it!
+  .findMany();
+// Actual: (status='active' AND name='Alice') OR (name='Bob')
+// Bob is included even if inactive!
+
+// ✅ CORRECT: Use whereGroup for explicit grouping
+const correct = await DB.users
+  .where({ status: 'active' })
+  .whereGroup(qb => qb
+    .where({ name: 'Alice' })
+    .orWhere({ name: 'Bob' })
+  )
+  .findMany();
+// Result: status='active' AND (name='Alice' OR name='Bob')
 ```
 
-For complex logic, prefer `whereGroup()` for explicit control.
+For complex logic, **always prefer `whereGroup()`** for explicit control.
 
 #### `whereGroup(callback)` - Recommended for complex logic
 

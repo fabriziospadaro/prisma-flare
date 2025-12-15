@@ -562,5 +562,50 @@ describe('FlareBuilder Integration Tests', () => {
       expect(users).toHaveLength(2);
       expect(users.map(u => u.name)).toEqual(['Alice', 'Bob']);
     });
+
+    /**
+     * TEACHING TEST: Demonstrates correct vs incorrect usage of orWhere()
+     *
+     * This test shows why orWhere() should be used carefully and why
+     * whereGroup() is often the better choice for complex boolean logic.
+     */
+    it('[TEACHING] orWhere misuse vs correct pattern', async () => {
+      await DB.users.createMany([
+        { email: 'alice@example.com', name: 'Alice', status: 'active' },
+        { email: 'bob@example.com', name: 'Bob', status: 'inactive' },
+        { email: 'charlie@example.com', name: 'Charlie', status: 'active' },
+      ]);
+
+      // WRONG: User thinks this means "active users named Alice or Bob"
+      // But it actually means: (status='active' AND name='Alice') OR (name='Bob')
+      // This would include Bob even if Bob is inactive!
+      const wrongResult = await DB.users
+        .where({ status: 'active' })
+        .where({ name: 'Alice' })
+        .orWhere({ name: 'Bob' })
+        .order({ name: 'asc' })
+        .findMany();
+
+      // Bob is included even though he's inactive!
+      expect(wrongResult).toHaveLength(2);
+      expect(wrongResult.map(u => u.name)).toEqual(['Alice', 'Bob']);
+      expect(wrongResult.find(u => u.name === 'Bob')?.status).toBe('inactive'); // Oops!
+
+      // CORRECT: Use whereGroup() for proper grouping
+      // This correctly means: status='active' AND (name='Alice' OR name='Bob')
+      const correctResult = await DB.users
+        .where({ status: 'active' })
+        .whereGroup(qb => qb
+          .where({ name: 'Alice' })
+          .orWhere({ name: 'Bob' })
+        )
+        .order({ name: 'asc' })
+        .findMany();
+
+      // Only active users are included (which is just Alice since Bob is inactive)
+      expect(correctResult).toHaveLength(1);
+      expect(correctResult[0].name).toBe('Alice');
+      expect(correctResult[0].status).toBe('active');
+    });
   });
 });

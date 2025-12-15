@@ -8,6 +8,53 @@ import type {
 } from '../types';
 
 /**
+ * Compares two values for equality, with special handling for:
+ * - Date: compares by timestamp (.getTime())
+ * - Decimal: compares by string representation (.toString())
+ * - Objects/Arrays (JSON fields): compares by JSON.stringify
+ * - Primitives: uses strict equality
+ * 
+ * This prevents false positives/negatives in column change detection.
+ */
+function valuesEqual(a: unknown, b: unknown): boolean {
+  // Both null/undefined
+  if (a == null && b == null) return true;
+  if (a == null || b == null) return false;
+
+  // Same reference
+  if (a === b) return true;
+
+  // Date comparison
+  if (a instanceof Date && b instanceof Date) {
+    return a.getTime() === b.getTime();
+  }
+
+  // Prisma Decimal comparison (has toDecimalPlaces/toString)
+  if (typeof (a as any).toDecimalPlaces === 'function' &&
+    typeof (b as any).toDecimalPlaces === 'function') {
+    return (a as any).toString() === (b as any).toString();
+  }
+
+  // BigInt comparison
+  if (typeof a === 'bigint' && typeof b === 'bigint') {
+    return a === b;
+  }
+
+  // Object/Array comparison (JSON fields) - use JSON.stringify
+  if (typeof a === 'object' && typeof b === 'object') {
+    try {
+      return JSON.stringify(a) === JSON.stringify(b);
+    } catch {
+      // If stringify fails, fall back to reference check (already false)
+      return false;
+    }
+  }
+
+  // Primitive comparison
+  return a === b;
+}
+
+/**
  * Configuration options for the hook system.
  */
 export interface HookConfig {
@@ -141,7 +188,7 @@ class HookRegistry {
       const key = `${model}:${column}`;
       const hooks = this.columnHooks.afterChange[key];
 
-      if (hooks && newData[column] !== prevData[column]) {
+      if (hooks && !valuesEqual(newData[column], prevData[column])) {
         for (const hook of hooks) {
           promises.push(hook(prevData[column], newData[column], newData, prisma) as Promise<void>);
         }
@@ -156,13 +203,19 @@ class HookRegistry {
 
   /**
    * Check if column hooks should run for an operation.
-   * Takes into account global config and record count limits.
+   * Takes into account global config, record count limits, and per-call options.
    * 
    * @param model - The model name
    * @param recordCount - Number of records affected (for maxRefetch check)
+   * @param args - The operation args (to check for __flare skip option)
    * @returns Whether column hooks should execute
    */
-  shouldRunColumnHooks(model: ModelName, recordCount: number): boolean {
+  shouldRunColumnHooks(model: ModelName, recordCount: number, args?: any): boolean {
+    // Check per-call skip option
+    if (args?.__flare?.skipColumnHooks === true) {
+      return false;
+    }
+
     if (!this.config.enableColumnHooks) {
       return false;
     }

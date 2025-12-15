@@ -324,5 +324,52 @@ describe('Hooks Integration Tests', () => {
       expect(config.maxRefetch).toBe(5000);
       expect(config.enableColumnHooks).toBe(true);
     });
+
+    it('should skip column hooks when __flare.skipColumnHooks is true', async () => {
+      const callback = vi.fn();
+
+      const user = await DB.users.create({
+        email: 'test@example.com',
+        name: 'Test User',
+        status: 'pending',
+      });
+
+      afterChange('user', 'status', callback);
+
+      // Use per-call skip option
+      await DB.users.where({ id: user.id }).update({
+        status: 'active',
+        // Per-call skip (this gets stripped before Prisma sees it)
+        __flare: { skipColumnHooks: true }
+      } as any); // Need 'as any' since __flare isn't in the Prisma type
+
+      // Hook should NOT fire because we skipped it for this call
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('should still run regular hooks when column hooks are skipped per-call', async () => {
+      const columnCallback = vi.fn();
+      const updateCallback = vi.fn();
+
+      const user = await DB.users.create({
+        email: 'test@example.com',
+        name: 'Test User',
+        status: 'pending',
+      });
+
+      afterChange('user', 'status', columnCallback);
+      afterUpdate('user', updateCallback);
+
+      // Use per-call skip for column hooks only
+      await DB.users.where({ id: user.id }).update({
+        status: 'active',
+        __flare: { skipColumnHooks: true }
+      } as any);
+
+      // Column hook should NOT fire
+      expect(columnCallback).not.toHaveBeenCalled();
+      // Regular update hook should still fire
+      expect(updateCallback).toHaveBeenCalled();
+    });
   });
 });

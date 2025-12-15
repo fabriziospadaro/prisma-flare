@@ -24,8 +24,8 @@ Ensure you have `@prisma/client` installed as a peer dependency.
 
 | Prisma Version | prisma-flare Support |
 |----------------|----------------------|
-| 5.x and below  | ✅ Full support      |
-| 6.x and below  | ✅ Full support      |
+| 5.x            | ✅ Full support      |
+| 6.x            | ✅ Full support      |
 | 7.x+           | ✅ Full support      |
 
 prisma-flare automatically detects your Prisma version at runtime and uses the appropriate API:

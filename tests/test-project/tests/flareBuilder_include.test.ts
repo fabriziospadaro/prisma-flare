@@ -98,4 +98,52 @@ describe('FlareBuilder Include Tests', () => {
     expect(userWithPostsAndAuthor).toBeDefined();
     expect(userWithPostsAndAuthor?.posts[0].author.email).toBe('nested@example.com');
   });
+
+  it('should use custom model methods in include callback', async () => {
+    const user = await DB.users.create({
+      email: 'custom@example.com',
+      name: 'Custom User',
+    });
+
+    // Create both published and draft posts
+    await DB.posts.createMany([
+      { title: 'Published Post 1', content: 'Content', authorId: user.id, published: true },
+      { title: 'Draft Post', content: 'Content', authorId: user.id, published: false },
+      { title: 'Published Post 2', content: 'Content', authorId: user.id, published: true },
+    ]);
+
+    // Use the custom .published() method from the Post model in the include callback
+    // Type inference is automatic thanks to RelationModelMap augmentation
+    const userWithPublishedPosts = await DB.users
+      .withId(user.id)
+      .include("posts", (posts) => posts.published())
+      .findFirst();
+
+    expect(userWithPublishedPosts).toBeDefined();
+    expect(userWithPublishedPosts?.posts).toHaveLength(2);
+    expect(userWithPublishedPosts?.posts.every((p: any) => p.published === true)).toBe(true);
+  });
+
+  it('should chain multiple custom model methods in include callback', async () => {
+    const user = await DB.users.create({
+      email: 'chain@example.com',
+      name: 'Chain User',
+    });
+
+    await DB.posts.createMany([
+      { title: 'Alpha Published', content: 'Content', authorId: user.id, published: true },
+      { title: 'Beta Published', content: 'Content', authorId: user.id, published: true },
+      { title: 'Gamma Draft', content: 'Content', authorId: user.id, published: false },
+    ]);
+
+    // Chain .published() and .recent() custom methods
+    // Type inference is automatic thanks to RelationModelMap augmentation
+    const userWithRecentPublished = await DB.users
+      .withId(user.id)
+      .include("posts", (posts) => posts.published().recent(1))
+      .findFirst();
+
+    expect(userWithRecentPublished).toBeDefined();
+    expect(userWithRecentPublished?.posts).toHaveLength(1);
+  });
 });

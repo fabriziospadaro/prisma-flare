@@ -7,6 +7,51 @@ function toCamelCase(str: string): string {
   return str.charAt(0).toLowerCase() + str.slice(1);
 }
 
+interface RelationInfo {
+  fieldName: string;
+  targetModel: string;
+}
+
+function parseRelations(schemaContent: string, models: string[]): Map<string, RelationInfo[]> {
+  const relations = new Map<string, RelationInfo[]>();
+
+  // Initialize empty arrays for each model
+  models.forEach(model => relations.set(model, []));
+
+  // Parse each model block
+  const modelBlockRegex = /model\s+(\w+)\s+{([^}]+)}/g;
+  let modelMatch;
+
+  while ((modelMatch = modelBlockRegex.exec(schemaContent)) !== null) {
+    const modelName = modelMatch[1];
+    const modelBody = modelMatch[2];
+
+    // Find relation fields (fields that reference other models)
+    const lines = modelBody.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('@')) continue;
+
+      // Match field definitions like: posts Post[] or author User
+      const fieldMatch = trimmed.match(/^(\w+)\s+(\w+)(\[\])?\s*/);
+      if (fieldMatch) {
+        const fieldName = fieldMatch[1];
+        const fieldType = fieldMatch[2];
+        const isArray = !!fieldMatch[3];
+
+        // Check if fieldType is one of our models (it's a relation)
+        if (models.includes(fieldType)) {
+          const modelRelations = relations.get(modelName) || [];
+          modelRelations.push({ fieldName, targetModel: fieldType });
+          relations.set(modelName, modelRelations);
+        }
+      }
+    }
+  }
+
+  return relations;
+}
+
 export function generateQueries() {
   const rootDir = findProjectRoot(process.cwd());
   const config = loadConfig(rootDir);
@@ -99,6 +144,9 @@ export default class ${model} extends FlareBuilder<'${modelCamel}'> {
   if (!relativePathToModels.startsWith('.')) relativePathToModels = './' + relativePathToModels;
   relativePathToModels = relativePathToModels.replace(/\\/g, '/');
 
+  // Parse relations from schema
+  const relations = parseRelations(schemaContent, models);
+
   const getters = models.map(model => {
     const modelCamel = toCamelCase(model);
     const customPlural = config.plurals?.[model];
@@ -108,6 +156,27 @@ export default class ${model} extends FlareBuilder<'${modelCamel}'> {
   }`;
   }).join('\n\n');
 
+  // Generate model registry entries - register model names, plurals, and relation field names
+  const registrationLines: string[] = [];
+  models.forEach(model => {
+    const modelCamel = toCamelCase(model);
+    const customPlural = config.plurals?.[model];
+    const modelPlural = customPlural || pluralize(modelCamel);
+    // Register by singular camelCase name (e.g., 'user', 'course', 'enrollment')
+    registrationLines.push(`modelRegistry.register('${modelCamel}', ${model});`);
+    // Register by plural name
+    registrationLines.push(`modelRegistry.register('${modelPlural}', ${model});`);
+  });
+
+  // Also register by relation field names (e.g., 'author' -> User, 'posts' -> Post)
+  relations.forEach((rels, modelName) => {
+    rels.forEach(rel => {
+      registrationLines.push(`modelRegistry.register('${rel.fieldName}', ${rel.targetModel});`);
+    });
+  });
+
+  const modelRegistrations = registrationLines.join('\n');
+
   const generatedJsPath = path.join(pfDistDir, 'generated.js');
 
   const imports = models.map(model => {
@@ -116,7 +185,11 @@ export default class ${model} extends FlareBuilder<'${modelCamel}'> {
 
   const generatedContent = `
 import { db } from '${relativePathToDbForDist}';
+import { modelRegistry } from './index.js';
 ${imports}
+
+// Register all models so include() can use custom model classes
+${modelRegistrations}
 
 export class DB {
   static get instance() {
@@ -136,7 +209,11 @@ ${getters}
 
   const generatedCjsContent = `
 const { db } = require('${relativePathToDbForDist}');
+const { modelRegistry } = require('./index.cjs');
 ${importsCjs}
+
+// Register all models so include() can use custom model classes
+${modelRegistrations}
 
 class DB {
   static get instance() {
@@ -163,9 +240,42 @@ exports.DB = DB;
     return `  static get ${modelPlural}(): ${model};`;
   }).join('\n');
 
+  // Generate RelationModelMap - maps relation field names to their model classes
+  const relationMapEntries: string[] = [];
+
+  // Add model name mappings (singular and plural)
+  models.forEach(model => {
+    const modelCamel = toCamelCase(model);
+    const customPlural = config.plurals?.[model];
+    const modelPlural = customPlural || pluralize(modelCamel);
+    relationMapEntries.push(`    ${modelCamel}: ${model};`);
+    relationMapEntries.push(`    ${modelPlural}: ${model};`);
+  });
+
+  // Add relation field name mappings
+  relations.forEach((rels, modelName) => {
+    rels.forEach(rel => {
+      // Only add if not already present (avoid duplicates)
+      const entry = `    ${rel.fieldName}: ${rel.targetModel};`;
+      if (!relationMapEntries.includes(entry)) {
+        relationMapEntries.push(entry);
+      }
+    });
+  });
+
   const generatedDtsContent = `
 import { db } from '${relativePathToDbForDts}';
 ${importsDts}
+
+/**
+ * Module augmentation to provide type-safe includes.
+ * This maps relation field names to their custom model classes.
+ */
+declare module 'prisma-flare' {
+  interface RelationModelMap {
+${relationMapEntries.join('\n')}
+  }
+}
 
 export declare class DB {
   static get instance(): typeof db;

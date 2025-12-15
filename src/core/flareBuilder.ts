@@ -24,6 +24,31 @@ import type {
   PaginatedResult
 } from '../types';
 import { IncludeKey } from '../types/prisma.types';
+import { modelRegistry } from './modelRegistry';
+
+/**
+ * Global interface for relation-to-model mapping.
+ * This is augmented by prisma-flare/generated to provide type-safe includes.
+ * 
+ * @example
+ * // In your project, prisma-flare generate creates:
+ * declare module 'prisma-flare' {
+ *   interface RelationModelMap {
+ *     posts: Post;
+ *     author: User;
+ *   }
+ * }
+ */
+export interface RelationModelMap {
+  [key: string]: FlareBuilder<any, any>;
+}
+
+/**
+ * Helper type to get the model class for a relation name
+ */
+type GetRelationModel<K extends string> = K extends keyof RelationModelMap
+  ? RelationModelMap[K]
+  : FlareBuilder<any, {}>;
 
 /**
  * FlareBuilder for chainable Prisma queries with full type safety
@@ -143,26 +168,34 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
   ): FlareBuilder<T, Args & { include: { [P in K]: true } }>;
 
   /**
-   * Includes a relation with optional query customization using a builder.
-   * Note: without TypeMap, we can't infer the related model name type-safely here,
-   * so we keep the callback builder model generic.
+   * Includes a relation with query customization using a builder.
+   * The callback receives the custom model class if registered via prisma-flare generate.
+   * Type inference is automatic when RelationModelMap is properly augmented.
+   * 
+   * @example
+   * // Type-safe includes with custom methods (automatic after prisma-flare generate):
+   * .include("posts", (posts) => posts.published().recent(5))
+   * .include("author", (author) => author.withEmail("test@example.com"))
    */
   include<
     K extends IncludeKey<T>,
-    RelatedArgs extends Record<string, any>
+    R extends FlareBuilder<any, any>
   >(
     relation: K,
-    callback: (builder: FlareBuilder<any, {}>) => FlareBuilder<any, RelatedArgs>
-  ): FlareBuilder<T, Args & { include: { [P in K]: RelatedArgs } }>;
+    callback: (builder: GetRelationModel<K & string>) => R
+  ): FlareBuilder<T, Args & { include: { [P in K]: R extends FlareBuilder<any, infer RA> ? RA : true } }>;
 
   include<K extends IncludeKey<T>>(
     relation: K,
-    callback?: (builder: FlareBuilder<any, {}>) => FlareBuilder<any, any>
+    callback?: (builder: any) => any
   ): FlareBuilder<T, Args & { include: Record<string, any> }> {
     let relationQuery: any = true;
 
     if (callback) {
-      const builder = new FlareBuilder<any>(null as any);
+      // Try to get the custom model class from the registry
+      // The relation name is typically the singular/plural form of the model name
+      const builder = modelRegistry.create(relation as string)
+        ?? new FlareBuilder<any>(null as any);
       callback(builder);
       relationQuery = builder.getQuery();
 

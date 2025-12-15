@@ -83,7 +83,8 @@ describe('Transaction API Tests', () => {
     });
 
     // Verify
-    const updatedUser = await DB.users.withId(originalUser.id).include({ posts: true }).findUnique();
+    const updatedUser = await DB.users.withId(originalUser.id)
+      .include("posts").findFirst();
     expect(updatedUser?.name).toBe('Original Name Updated');
     expect(updatedUser?.posts).toHaveLength(1);
     expect(updatedUser?.posts[0].title).toBe('New Post');

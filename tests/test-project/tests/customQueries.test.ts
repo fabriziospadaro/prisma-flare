@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { DB } from 'prisma-flare/generated';
-import { cleanDatabase, disconnectPrisma } from './helpers';
+import { cleanDatabase, disconnectPrisma } from './helpers.js';
 
 describe('Custom Queries Integration Tests', () => {
   beforeEach(async () => {

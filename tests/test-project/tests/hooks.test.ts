@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { beforeCreate, afterCreate, afterUpdate, afterChange, hookRegistry } from 'prisma-flare';
 import { DB } from 'prisma-flare/generated';
-import { cleanDatabase, disconnectPrisma } from './helpers';
+import { cleanDatabase, disconnectPrisma } from './helpers.js';
 
 describe('Hooks Integration Tests', () => {
   beforeEach(async () => {

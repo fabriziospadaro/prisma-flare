@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db } from '../db.js';
 import { FlareBuilder } from 'prisma-flare';
 
 export default class User extends FlareBuilder<'user'> {

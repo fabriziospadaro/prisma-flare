@@ -38,5 +38,8 @@ export type {
   AggregateResult,
   QueryArgs,
   PaginatedResult,
-  PrismaMiddlewareParams
+  PrismaMiddlewareParams,
+  ModelPayload,
+  ModelRelations,
+  RelatedModelName
 } from './prisma.types';

@@ -22,7 +22,9 @@ import type {
   MinFields,
   MaxFields,
   QueryArgs,
-  PaginatedResult
+  PaginatedResult,
+  ModelRelations,
+  RelatedModelName
 } from '../types';
 
 /**
@@ -129,11 +131,51 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
   }
 
   /**
-   * Includes related models in the query
-   * @param relations - Include object matching your Prisma model
+   * Returns the current query object
    */
-  include<I extends IncludeInput<T>>(relations: I): FlareBuilder<T, Args & { include: I }> {
-    this.query.include = relations;
+  getQuery(): QueryArgs {
+    return this.query;
+  }
+
+  /**
+   * Includes a relation with optional query customization using a builder
+   * @param relation - The name of the relation to include
+   * @param callback - Optional callback to customize the relation query
+   */
+  include<K extends keyof ModelRelations<T> & string>(
+    relation: K
+  ): FlareBuilder<T, Args & { include: { [P in K]: true } }>;
+
+  include<
+    K extends keyof ModelRelations<T> & string,
+    RelatedArgs extends Record<string, any>
+  >(
+    relation: K,
+    callback: (builder: FlareBuilder<RelatedModelName<T, K> & ModelName, Record<string, never>>) => FlareBuilder<RelatedModelName<T, K> & ModelName, RelatedArgs>
+  ): FlareBuilder<T, Args & { include: { [P in K]: RelatedArgs } }>;
+
+  include<K extends keyof ModelRelations<T> & string>(
+    relation: K,
+    callback?: (builder: FlareBuilder<any, Record<string, never>>) => FlareBuilder<any, any>
+  ): FlareBuilder<T, Args & { include: Record<string, any> }> {
+    let relationQuery: any = true;
+
+    if (callback) {
+      const builder = new FlareBuilder<any>(null as any);
+      callback(builder);
+      relationQuery = builder.getQuery();
+
+      // If the query is empty, we treat it as true (include all default fields)
+      if (Object.keys(relationQuery).length === 0) {
+        relationQuery = true;
+      }
+    }
+
+    this.query.include = {
+      ...(this.query.include as any),
+      [relation]: relationQuery
+    };
+
     return this as any;
   }
 

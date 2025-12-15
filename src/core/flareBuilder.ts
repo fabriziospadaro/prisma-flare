@@ -29,7 +29,7 @@ import { IncludeKey } from '../types/prisma.types';
  * FlareBuilder for chainable Prisma queries with full type safety
  * The type safety is enforced through the ModelDelegate parameter
  */
-export default class FlareBuilder<T extends ModelName, Args extends Record<string, any> = Record<string, never>> {
+export default class FlareBuilder<T extends ModelName, Args extends Record<string, any> = {}> {
   protected model: ModelDelegate<T>;
   protected query: QueryArgs;
 
@@ -152,12 +152,12 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
     RelatedArgs extends Record<string, any>
   >(
     relation: K,
-    callback: (builder: FlareBuilder<any, Record<string, never>>) => FlareBuilder<any, RelatedArgs>
+    callback: (builder: FlareBuilder<any, {}>) => FlareBuilder<any, RelatedArgs>
   ): FlareBuilder<T, Args & { include: { [P in K]: RelatedArgs } }>;
 
   include<K extends IncludeKey<T>>(
     relation: K,
-    callback?: (builder: FlareBuilder<any, Record<string, never>>) => FlareBuilder<any, any>
+    callback?: (builder: FlareBuilder<any, {}>) => FlareBuilder<any, any>
   ): FlareBuilder<T, Args & { include: Record<string, any> }> {
     let relationQuery: any = true;
 

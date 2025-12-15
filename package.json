@@ -13,7 +13,6 @@
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
-    "prepare": "npm run build",
     "prepublishOnly": "npm run clean && npm run build",
     "test": "tsx scripts/setup-test-project.ts && cd tests/test-project && npm test",
     "test:e2e": "npm run test",
@@ -43,7 +42,12 @@
     "prisma-flare": "./dist/cli/index.js"
   },
   "peerDependencies": {
-    "@prisma/client": "^5.0.0 || ^6.0.0 || ^7.0.0"
+    "@prisma/client": ">=5.18.0"
+  },
+  "peerDependenciesMeta": {
+    "@prisma/client": {
+      "optional": false
+    }
   },
   "dependencies": {
     "pg": "^8.16.3",
@@ -51,6 +55,8 @@
     "dotenv": "^17.2.3"
   },
   "devDependencies": {
+    "@prisma/client": "^5.18.0",
+    "prisma": "^5.18.0",
     "@types/node": "^20.19.25",
     "@types/pg": "^8.15.6",
     "@types/pluralize": "^0.0.33",
@@ -61,7 +67,6 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.7.4",
-    "prisma": "^5.9.1",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",

@@ -6,7 +6,6 @@ import type {
   WhereInput,
   OrderByInput,
   SelectInput,
-  IncludeInput,
   DistinctInput,
   CreateData,
   CreateManyData,
@@ -22,10 +21,9 @@ import type {
   MinFields,
   MaxFields,
   QueryArgs,
-  PaginatedResult,
-  ModelRelations,
-  RelatedModelName
+  PaginatedResult
 } from '../types';
+import { IncludeKey } from '../types/prisma.types';
 
 /**
  * FlareBuilder for chainable Prisma queries with full type safety
@@ -138,23 +136,26 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
   }
 
   /**
-   * Includes a relation with optional query customization using a builder
-   * @param relation - The name of the relation to include
-   * @param callback - Optional callback to customize the relation query
-   */
-  include<K extends keyof ModelRelations<T> & string>(
+ * Includes a relation (typed from Prisma's `include` args)
+ */
+  include<K extends IncludeKey<T>>(
     relation: K
   ): FlareBuilder<T, Args & { include: { [P in K]: true } }>;
 
+  /**
+   * Includes a relation with optional query customization using a builder.
+   * Note: without TypeMap, we can't infer the related model name type-safely here,
+   * so we keep the callback builder model generic.
+   */
   include<
-    K extends keyof ModelRelations<T> & string,
+    K extends IncludeKey<T>,
     RelatedArgs extends Record<string, any>
   >(
     relation: K,
-    callback: (builder: FlareBuilder<RelatedModelName<T, K> & ModelName, Record<string, never>>) => FlareBuilder<RelatedModelName<T, K> & ModelName, RelatedArgs>
+    callback: (builder: FlareBuilder<ModelName, Record<string, never>>) => FlareBuilder<ModelName, RelatedArgs>
   ): FlareBuilder<T, Args & { include: { [P in K]: RelatedArgs } }>;
 
-  include<K extends keyof ModelRelations<T> & string>(
+  include<K extends IncludeKey<T>>(
     relation: K,
     callback?: (builder: FlareBuilder<any, Record<string, never>>) => FlareBuilder<any, any>
   ): FlareBuilder<T, Args & { include: Record<string, any> }> {
@@ -165,7 +166,6 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
       callback(builder);
       relationQuery = builder.getQuery();
 
-      // If the query is empty, we treat it as true (include all default fields)
       if (Object.keys(relationQuery).length === 0) {
         relationQuery = true;
       }

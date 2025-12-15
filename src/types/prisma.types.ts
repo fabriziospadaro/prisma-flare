@@ -1,4 +1,4 @@
-import type { PrismaClient, Prisma } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 
 /**
  * Extract model names from PrismaClient
@@ -78,12 +78,16 @@ export type CreateData<T extends ModelName> = NonNullable<PrismaArgs<T, 'create'
 /**
  * Extract CreateMany args type for a given model
  */
-export type CreateManyArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'createMany'>>;
+export type CreateManyArgs<T extends ModelName> = 'createMany' extends keyof ModelDelegate<T>
+  ? NonNullable<PrismaArgs<T, 'createMany'>>
+  : never;
 
 /**
  * Extract CreateMany data type for a given model
  */
-export type CreateManyData<T extends ModelName> = NonNullable<PrismaArgs<T, 'createMany'>> extends { data: infer D } ? D : never;
+export type CreateManyData<T extends ModelName> = 'createMany' extends keyof ModelDelegate<T>
+  ? NonNullable<PrismaArgs<T, 'createMany'>> extends { data: infer D } ? D : never
+  : never;
 
 /**
  * Extract Update args type for a given model
@@ -139,30 +143,16 @@ export type SelectInput<T extends ModelName> = FindManyArgs<T> extends { select?
 /**
  * Extract Include input type
  */
-export type IncludeInput<T extends ModelName> = FindManyArgs<T> extends { include?: infer I } ? I : never;
+export type IncludeInput<T extends ModelName> =
+  FindManyArgs<T> extends { include?: infer I } ? I : never;
 
-/**
- * Get the Payload type for a model from TypeMap
- */
-export type ModelPayload<T extends ModelName> = Capitalize<T> extends keyof Prisma.TypeMap['model']
-  ? Prisma.TypeMap['model'][Capitalize<T>]['payload']
-  : never;
 
-/**
- * Extract the objects (relations) from a model's payload
- */
-export type ModelRelations<T extends ModelName> = ModelPayload<T> extends { objects: infer O } ? O : never;
+export type IncludeMap<T extends ModelName> = NonNullable<IncludeInput<T>>;
 
-/**
- * Get the related model name from a relation key
- * Extracts the model name from the relation payload, unwrapping arrays if needed
- */
-export type RelatedModelName<T extends ModelName, K extends keyof ModelRelations<T>> = 
-  ModelRelations<T>[K] extends { name: infer N } 
-    ? N extends string ? N : never
-    : ModelRelations<T>[K] extends Array<{ name: infer N }>
-      ? N extends string ? N : never
-      : never;
+export type IncludeKey<T extends ModelName> = keyof IncludeMap<T> & string;
+
+export type IncludeValue<T extends ModelName, K extends IncludeKey<T>> =
+  IncludeMap<T>[K];
 
 /**
  * Extract Distinct input type

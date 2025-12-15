@@ -39,7 +39,5 @@ export type {
   QueryArgs,
   PaginatedResult,
   PrismaMiddlewareParams,
-  ModelPayload,
-  ModelRelations,
-  RelatedModelName
+  IncludeKey
 } from './prisma.types';

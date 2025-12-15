@@ -4,7 +4,7 @@ import FlareBuilder from './flareBuilder';
 import type { ModelName, ModelDelegate } from '../types';
 
 export class ExtendedPrismaClient extends PrismaClient {
-  constructor(options?: PrismaClientOptions) {
+  constructor(options: PrismaClientOptions = {}) {
     super(options);
   }
 

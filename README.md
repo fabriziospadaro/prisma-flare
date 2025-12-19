@@ -129,7 +129,7 @@ Example with custom plurals:
 Once generated, you can import the `DB` class to access chainable methods for your models.
 
 ```typescript
-import DB from '.prisma-flare'; // Import from the generated module
+import { DB } from 'prisma-flare/generated';
 
 // Chainable query builder with full type safety
 const posts = await DB.posts
@@ -348,7 +348,7 @@ You can extend the generated query classes with custom methods for your domain-s
 
 ```typescript
 // src/models/Post.ts
-import { db } from '../core/db';
+import { db } from './db';
 import { FlareBuilder } from 'prisma-flare';
 
 export default class Post extends FlareBuilder<'post'> {
@@ -393,7 +393,8 @@ export default class Post extends FlareBuilder<'post'> {
 Then use your custom methods in queries:
 
 ```typescript
-import DB from './src/models';
+import { DB } from 'prisma-flare/generated';
+
 
 // Use custom methods with full chainability
 const recentPublished = await DB.post

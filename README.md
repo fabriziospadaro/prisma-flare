@@ -41,7 +41,7 @@ npm test -- --grep "Benchmark"
 - **Plug & Play**: Works with any existing Prisma project
 - **Flare Builder**: Elegant chainable query API for Prisma models
 - **Auto-Generated Queries**: Automatically generates query classes based on your schema
-- **Callback System**: Hooks for before/after operations (create, update, delete, upsert)
+- **Callback System**: Hooks for before/after operations (create, update, delete) and after upsert
 - **Column-Level Hooks**: Track changes to specific columns with `afterChange` callbacks
 - **Extended Prisma Client**: Enhanced PrismaClient with additional utility methods
 - **Type-Safe**: Full IntelliSense and compile-time type checking
@@ -76,13 +76,14 @@ Replace your standard `PrismaClient` with `ExtendedPrismaClient` in your databas
 // src/db.ts
 import { ExtendedPrismaClient, registerHooks } from 'prisma-flare';
 
-// Initialize hooks middleware (returns extended client for Prisma 7+)
-const db = registerHooks(new ExtendedPrismaClient());
-
-export { db };
+// Initialize hooks middleware and auto-load callbacks
+export const db = await registerHooks(new ExtendedPrismaClient());
 ```
 
-> **Note**: In Prisma 7+, `registerHooks()` returns a new extended client instance. Always use the returned value. This pattern is backwards compatible with Prisma 6 as well.
+`registerHooks()` is async and:
+- Registers the hooks middleware (using the appropriate API for your Prisma version)
+- Automatically loads all callback files from `prisma/callbacks` (or your configured path)
+- Returns the extended client instance
 
 ### 2. Generate Query Classes
 
@@ -102,12 +103,14 @@ If your project structure is different, create a `prisma-flare.config.json` in y
 {
   "modelsPath": "src/models",
   "dbPath": "src/lib/db",
+  "callbacksPath": "src/callbacks",
   "envPath": ".env.local"
 }
 ```
 
 - `modelsPath`: Where to generate the query classes (defaults to `prisma/models`).
 - `dbPath`: Path to the file exporting your `db` instance (relative to project root, defaults to `prisma/db`).
+- `callbacksPath`: Directory containing your callback/hook files (defaults to `prisma/callbacks`). All `.ts`/`.js` files in this directory are automatically loaded when `registerHooks()` is called.
 - `envPath`: Path to your environment file (optional, defaults to `.env`).
 - `plurals`: Custom pluralization for model names (optional).
 
@@ -200,10 +203,11 @@ await DB.instance.transaction(async (tx) => {
 
 ### Callhooks & Middleware
 
-Define hooks to run logic before or after database operations. You can use `before` hooks for validation or data modification.
+Define hooks to run logic before or after database operations. Create callback files in your callbacks directory (default: `prisma/callbacks`) and they'll be automatically loaded.
 
 ```typescript
-import { beforeCreate, afterCreate, afterChange } from 'prisma-flare';
+// prisma/callbacks/user.ts
+import { beforeCreate, afterCreate } from 'prisma-flare';
 
 // Validation: Prevent creating users with invalid emails
 beforeCreate('User', async (args) => {
@@ -217,6 +221,11 @@ afterCreate('User', async (args, result) => {
   console.log('New user created:', result.email);
   await sendWelcomeEmail(result.email);
 });
+```
+
+```typescript
+// prisma/callbacks/post.ts
+import { afterChange } from 'prisma-flare';
 
 // Run when the 'published' field on Post changes
 afterChange('Post', 'published', async (oldValue, newValue, record) => {
@@ -225,6 +234,8 @@ afterChange('Post', 'published', async (oldValue, newValue, record) => {
   }
 });
 ```
+
+All files in the callbacks directory are automatically imported when `registerHooks()` is called. No manual loading required.
 
 #### Hook Configuration
 
@@ -298,18 +309,20 @@ This prevents false positives when:
 For more control over hook registration, prisma-flare exports additional utilities:
 
 ```typescript
-import { 
-  registerHooks,           // Auto-detects Prisma version (recommended)
-  registerHooksLegacy,     // Force legacy $use API (Prisma ≤6 only)
-  createHooksExtension     // Get raw extension for manual use
+import {
+  registerHooks,           // Auto-detects Prisma version + auto-loads callbacks (recommended)
+  registerHooksLegacy,     // Force legacy $use API (Prisma ≤6 only, no auto-load)
+  createHooksExtension,    // Get raw extension for manual use
+  loadCallbacks            // Manually load callbacks from a custom path
 } from 'prisma-flare';
 
-// Option 1: Auto-detect (recommended)
-const db = registerHooks(new ExtendedPrismaClient());
+// Option 1: Auto-detect with auto-loading (recommended)
+const db = await registerHooks(new ExtendedPrismaClient());
 
-// Option 2: Manual extension (Prisma 7+ only)
+// Option 2: Manual callback loading from custom path
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient().$extends(createHooksExtension(new PrismaClient()));
+await loadCallbacks('/custom/path/to/callbacks');
 ```
 
 ## CLI Utilities

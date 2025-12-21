@@ -1,6 +1,3 @@
-import { ExtendedPrismaClient, registerHooks, loadCallbacks } from 'prisma-flare';
+import { ExtendedPrismaClient, registerHooks } from 'prisma-flare';
 
-export const db = new ExtendedPrismaClient();
-registerHooks(db);
-
-export { loadCallbacks };
+export const db = await registerHooks(new ExtendedPrismaClient());

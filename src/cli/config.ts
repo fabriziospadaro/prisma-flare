@@ -4,6 +4,7 @@ import * as path from 'path';
 export interface PrismaFlareConfig {
   modelsPath: string;
   dbPath: string;
+  callbacksPath: string;
   envPath?: string;
   plurals?: Record<string, string>;
 }
@@ -26,6 +27,7 @@ export function loadConfig(rootDir?: string): PrismaFlareConfig {
   let config: PrismaFlareConfig = {
     modelsPath: 'prisma/models',
     dbPath: 'prisma/db',
+    callbacksPath: 'prisma/callbacks',
   };
 
   if (fs.existsSync(configPath)) {

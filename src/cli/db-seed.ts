@@ -1,12 +1,6 @@
 #!/usr/bin/env node
 
 import { execSync } from 'child_process';
-import * as dotenv from 'dotenv';
-import { loadConfig } from './config';
-
-const config = loadConfig();
-
-dotenv.config({ path: config.envPath });
 
 function seedDatabase(): void {
   const databaseUrl = process.env.DATABASE_URL;

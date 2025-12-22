@@ -3,7 +3,7 @@ import type { PrismaClientOptions } from '@prisma/client/runtime/library';
 import FlareBuilder from './flareBuilder';
 import type { ModelName, ModelDelegate } from '../types';
 
-export class ExtendedPrismaClient extends PrismaClient {
+export class FlareClient extends PrismaClient {
   constructor(options: PrismaClientOptions = {}) {
     super(options);
   }
@@ -23,13 +23,13 @@ export class ExtendedPrismaClient extends PrismaClient {
   }
 
   /**
-   * Executes a transaction with the ExtendedPrismaClient capabilities.
+   * Executes a transaction with the FlareClient capabilities.
    * @param fn - The transaction function.
    * @param options - Transaction options.
    * @returns The result of the transaction.
    */
   async transaction<R>(
-    fn: (tx: ExtendedPrismaClient) => Promise<R>,
+    fn: (tx: FlareClient) => Promise<R>,
     options?: { maxWait?: number; timeout?: number; isolationLevel?: any }
   ): Promise<R> {
     return super.$transaction(async (tx: any) => {
@@ -49,7 +49,12 @@ export class ExtendedPrismaClient extends PrismaClient {
         }
       });
 
-      return fn(extendedTx as unknown as ExtendedPrismaClient);
+      return fn(extendedTx as unknown as FlareClient);
     }, options);
   }
 }
+
+/**
+ * @deprecated Use `FlareClient` instead. This alias will be removed in a future version.
+ */
+export const ExtendedPrismaClient = FlareClient;

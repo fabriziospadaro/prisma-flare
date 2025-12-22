@@ -5,7 +5,6 @@ export interface PrismaFlareConfig {
   modelsPath: string;
   dbPath: string;
   callbacksPath: string;
-  envPath?: string;
   plurals?: Record<string, string>;
 }
 

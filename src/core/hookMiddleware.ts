@@ -230,7 +230,7 @@ export function registerHooksLegacy(prisma: PrismaClient): void {
  *
  * @example
  * // In your db setup file:
- * export const db = await registerHooks(new ExtendedPrismaClient());
+ * export const db = await registerHooks(new FlareClient());
  */
 export async function registerHooks<T extends PrismaClient>(prisma: T): Promise<T> {
   let client: T;

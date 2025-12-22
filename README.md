@@ -70,14 +70,14 @@ prisma-flare automatically detects your Prisma version at runtime and uses the a
 
 ### 1. Initialize your Client
 
-Replace your standard `PrismaClient` with `ExtendedPrismaClient` in your database setup file (e.g., `src/db.ts` or `src/lib/prisma.ts`).
+Replace your standard `PrismaClient` with `FlareClient` in your database setup file (e.g., `src/db.ts` or `src/lib/prisma.ts`).
 
 ```typescript
 // src/db.ts
-import { ExtendedPrismaClient, registerHooks } from 'prisma-flare';
+import { FlareClient, registerHooks } from 'prisma-flare';
 
 // Initialize hooks middleware and auto-load callbacks
-export const db = await registerHooks(new ExtendedPrismaClient());
+export const db = await registerHooks(new FlareClient());
 ```
 
 `registerHooks()` is async and:
@@ -169,13 +169,13 @@ Prisma Flare provides a powerful wrapper around Prisma's interactive transaction
 // Simple transaction
 const result = await DB.instance.transaction(async (tx) => {
   // Create a user
-  const user = await tx.from('User').create({
+  const user = await tx.from('user').create({
     email: 'tx-user@example.com',
     name: 'Transaction User',
   });
 
   // Create a related post using the user's ID
-  const post = await tx.from('Post').create({
+  const post = await tx.from('post').create({
     title: 'Transaction Post',
     content: 'Content',
     authorId: user.id,
@@ -186,15 +186,15 @@ const result = await DB.instance.transaction(async (tx) => {
 
 // Complex logic with conditional operations
 await DB.instance.transaction(async (tx) => {
-  const existing = await tx.from('User').where({ email: 'check@example.com' }).findFirst();
+  const existing = await tx.from('user').where({ email: 'check@example.com' }).findFirst();
 
   if (!existing) {
-    await tx.from('User').create({
+    await tx.from('user').create({
       email: 'check@example.com',
       name: 'New User'
     });
   } else {
-    await tx.from('User').withId(existing.id).update({
+    await tx.from('user').withId(existing.id).update({
       lastLogin: new Date()
     });
   }
@@ -210,14 +210,14 @@ Define hooks to run logic before or after database operations. Create callback f
 import { beforeCreate, afterCreate } from 'prisma-flare';
 
 // Validation: Prevent creating users with invalid emails
-beforeCreate('User', async (args) => {
+beforeCreate('user', async (args) => {
   if (!args.data.email.includes('@')) {
     throw new Error('Invalid email address');
   }
 });
 
-// Run after a User is created
-afterCreate('User', async (args, result) => {
+// Run after a user is created
+afterCreate('user', async (args, result) => {
   console.log('New user created:', result.email);
   await sendWelcomeEmail(result.email);
 });
@@ -227,8 +227,8 @@ afterCreate('User', async (args, result) => {
 // prisma/callbacks/post.ts
 import { afterChange } from 'prisma-flare';
 
-// Run when the 'published' field on Post changes
-afterChange('Post', 'published', async (oldValue, newValue, record) => {
+// Run when the 'published' field on post changes
+afterChange('post', 'published', async (oldValue, newValue, record) => {
   if (!oldValue && newValue) {
     console.log(`Post "${record.title}" was published!`);
   }
@@ -317,7 +317,7 @@ import {
 } from 'prisma-flare';
 
 // Option 1: Auto-detect with auto-loading (recommended)
-const db = await registerHooks(new ExtendedPrismaClient());
+const db = await registerHooks(new FlareClient());
 
 // Option 2: Manual callback loading from custom path
 import { PrismaClient } from '@prisma/client';

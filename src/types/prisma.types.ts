@@ -19,11 +19,11 @@ type RawPrismaClientKeys = Exclude<
 >;
 
 /**
- * Extract model names from PrismaClient
+ * Extract model names from PrismaClient (lowercase only, matching Prisma client delegates)
  */
 export type ModelName = [RawPrismaClientKeys] extends [never]
   ? string
-  : RawPrismaClientKeys | Capitalize<RawPrismaClientKeys>;
+  : RawPrismaClientKeys;
 
 /**
  * Extract the delegate type for a given model

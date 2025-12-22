@@ -1,12 +1,6 @@
 #!/usr/bin/env node
 
-import * as dotenv from 'dotenv';
 import { registry } from '../core/adapters';
-import { loadConfig } from './config';
-
-const config = loadConfig();
-
-dotenv.config({ path: config.envPath });
 
 async function createDatabase(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;

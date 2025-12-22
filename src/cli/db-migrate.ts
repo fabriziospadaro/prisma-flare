@@ -1,13 +1,7 @@
 #!/usr/bin/env node
 
 import { execSync } from 'child_process';
-import * as dotenv from 'dotenv';
 import { generateQueries } from './generate-queries';
-import { loadConfig } from './config';
-
-const config = loadConfig();
-
-dotenv.config({ path: config.envPath });
 
 function runMigrations(): void {
   const databaseUrl = process.env.DATABASE_URL;

@@ -1,13 +1,7 @@
 #!/usr/bin/env node
 
 import { execSync } from 'child_process';
-import * as dotenv from 'dotenv';
 import * as readline from 'readline';
-import { loadConfig } from './config';
-
-const config = loadConfig();
-
-dotenv.config({ path: config.envPath });
 
 function confirm(question: string): Promise<boolean> {
   const rl = readline.createInterface({

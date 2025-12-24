@@ -137,7 +137,7 @@ async function executeHookLogic(
 
   if (hasColumnHooks && isUpdateAction) {
     fields = hookRegistry.getRelevantFields(modelName);
-    prevData = await fetchAffectedRecords(prisma, modelName, args.where, fields);
+    prevData = await fetchAffectedRecords(prisma, model as ModelName, args.where, fields);
 
     // Check config, record count limits, and per-call skip option
     shouldRunColumnHooks = hookRegistry.shouldRunColumnHooks(modelName, prevData.length, { __flare: flareOptions });
@@ -155,7 +155,7 @@ async function executeHookLogic(
     // This fixes the issue where update() with select/include returns only partial data,
     // causing afterChange hooks to miss column changes not in the returned result
     const ids = prevData.map(r => r.id);
-    newData = await fetchAffectedRecords(prisma, modelName, { id: { in: ids } }, fields);
+    newData = await fetchAffectedRecords(prisma, model as ModelName, { id: { in: ids } }, fields);
 
     for (let i = 0; i < prevData.length; i++) {
       const prevRecord = prevData[i];

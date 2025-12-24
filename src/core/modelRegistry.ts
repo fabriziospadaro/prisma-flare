@@ -76,5 +76,14 @@ class ModelRegistry {
   }
 }
 
-export const modelRegistry = new ModelRegistry();
+// Use a global symbol to ensure there's only ONE modelRegistry instance
+// even when the module is loaded from different paths or through ESM/CJS interop
+const MODEL_REGISTRY_SYMBOL = Symbol.for('prisma-flare.modelRegistry');
+
+const globalObj = globalThis as Record<symbol, ModelRegistry>;
+if (!globalObj[MODEL_REGISTRY_SYMBOL]) {
+  globalObj[MODEL_REGISTRY_SYMBOL] = new ModelRegistry();
+}
+
+export const modelRegistry = globalObj[MODEL_REGISTRY_SYMBOL];
 export default modelRegistry;

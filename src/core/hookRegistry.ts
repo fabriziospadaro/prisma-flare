@@ -276,5 +276,14 @@ class HookRegistry {
   }
 }
 
-const hookRegistry = new HookRegistry();
+// Use a global symbol to ensure there's only ONE hookRegistry instance
+// even when the module is loaded from different paths or through ESM/CJS interop
+const HOOK_REGISTRY_SYMBOL = Symbol.for('prisma-flare.hookRegistry');
+
+const globalObj = globalThis as Record<symbol, HookRegistry>;
+if (!globalObj[HOOK_REGISTRY_SYMBOL]) {
+  globalObj[HOOK_REGISTRY_SYMBOL] = new HookRegistry();
+}
+
+const hookRegistry = globalObj[HOOK_REGISTRY_SYMBOL];
 export default hookRegistry;

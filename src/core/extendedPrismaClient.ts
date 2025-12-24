@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import type { PrismaClientOptions } from '@prisma/client/runtime/library';
+import type { PrismaClientOptions, DriverAdapter } from '@prisma/client/runtime/library';
 import FlareBuilder from './flareBuilder';
 import type { ModelName, ModelDelegate } from '../types';
 import { createHooksExtension, registerHooksLegacy } from './hookMiddleware';
@@ -13,6 +13,12 @@ export interface FlareClientOptions extends PrismaClientOptions {
    * @default true
    */
   callbacks?: boolean;
+
+  /**
+   * Driver adapter for serverless/edge environments.
+   * Pass an adapter instance (e.g., from @prisma/adapter-pg, @prisma/adapter-d1, etc.)
+   */
+  adapter?: DriverAdapter;
 }
 
 /**

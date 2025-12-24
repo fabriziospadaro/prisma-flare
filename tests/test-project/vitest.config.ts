@@ -22,6 +22,11 @@ export default defineConfig({
         // Fix for symlinked library trying to import relative to its physical location
         find: /.*\/Desktop\/src\/db$/,
         replacement: path.resolve(__dirname, 'src/db')
+      },
+      {
+        // .prisma-flare is a node_modules package, not a relative path
+        find: '.prisma-flare',
+        replacement: path.resolve(__dirname, 'node_modules/.prisma-flare')
       }
     ]
   },

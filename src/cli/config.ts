@@ -6,6 +6,18 @@ export interface PrismaFlareConfig {
   dbPath: string;
   callbacksPath: string;
   plurals?: Record<string, string>;
+  /**
+   * Override the auto-detected Prisma client import path.
+   * Use this if auto-detection from schema.prisma doesn't work for your setup.
+   *
+   * @example
+   * // For custom Prisma output
+   * { "prismaClientPath": "./generated/client" }
+   *
+   * // For monorepo setups
+   * { "prismaClientPath": "@myorg/database" }
+   */
+  prismaClientPath?: string;
 }
 
 export function findProjectRoot(currentDir: string): string {

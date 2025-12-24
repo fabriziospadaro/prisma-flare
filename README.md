@@ -75,10 +75,12 @@ Replace your standard `PrismaClient` with `FlareClient` in your database setup f
 ```typescript
 // prisma/db.ts
 import './callbacks';  // Import generated index to register all hooks
-import { FlareClient } from 'prisma-flare';
+import { FlareClient } from 'prisma-flare/client';
 
 export const db = new FlareClient();
 ```
+
+**Note:** Always import `FlareClient` from `prisma-flare/client` - this ensures compatibility with custom Prisma output paths (see [Custom Prisma Output Path](#custom-prisma-output-path) below).
 
 `FlareClient` automatically attaches the callbacks middleware (using the appropriate API for your Prisma version). The callbacks import loads a generated barrel file that registers all your hooks - this pattern works in all environments (bundlers, Node.js, serverless, etc.).
 
@@ -87,7 +89,7 @@ export const db = new FlareClient();
 ```typescript
 import './callbacks';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { FlareClient } from 'prisma-flare';
+import { FlareClient } from 'prisma-flare/client';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 
@@ -97,7 +99,7 @@ export const db = new FlareClient({ adapter });
 **Disable callbacks middleware:**
 
 ```typescript
-import { FlareClient } from 'prisma-flare';
+import { FlareClient } from 'prisma-flare/client';
 
 // If you don't use callbacks, disable the middleware for slightly less overhead
 export const db = new FlareClient({ callbacks: false });
@@ -145,6 +147,52 @@ Example with custom plurals:
     "Equipment": "equipment"
   }
 }
+```
+
+### Custom Prisma Output Path
+
+If you use a custom `output` in your Prisma schema, prisma-flare automatically detects and supports it:
+
+```prisma
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/client"  // Custom output path
+}
+```
+
+The `prisma-flare generate` command:
+1. Parses your `schema.prisma` to detect custom output paths
+2. Generates `node_modules/.prisma-flare/` with the correct import path
+3. `prisma-flare/client` automatically uses this generated client
+
+**That's it!** Just import from `prisma-flare/client` and it works:
+
+```typescript
+import { FlareClient } from 'prisma-flare/client';  // Works with any Prisma output path
+import { hookRegistry } from 'prisma-flare';         // Hooks/utilities from main package
+
+export const db = new FlareClient();
+```
+
+**Manual override:** If auto-detection doesn't work for your setup, you can explicitly configure the path:
+
+```json
+{
+  "prismaClientPath": "./src/generated/prisma"
+}
+```
+
+**Advanced: Factory function**
+
+For full control, use `createFlareClient` to create a FlareClient from any PrismaClient:
+
+```typescript
+import { createFlareClient } from 'prisma-flare';
+import { PrismaClient, Prisma } from './my/custom/prisma/path';
+
+const FlareClient = createFlareClient(PrismaClient, Prisma);
+export const db = new FlareClient();
 ```
 
 ## Usage

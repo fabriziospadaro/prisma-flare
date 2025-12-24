@@ -4,6 +4,10 @@
     "module": "ESNext",
     "lib": ["ES2020"],
     "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      ".prisma-flare": ["./src/client/.prisma-flare.d.ts"]
+    },
     "rootDir": "./src",
     "outDir": "./dist",
     "declaration": true,

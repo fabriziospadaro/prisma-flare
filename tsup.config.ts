@@ -4,6 +4,7 @@ export default defineConfig({
   entry: [
     'src/index.ts',
     'src/generated.ts',
+    'src/client/index.ts',
     'src/cli/index.ts',
     'src/cli/db-create.ts',
     'src/cli/db-drop.ts',
@@ -19,6 +20,8 @@ export default defineConfig({
   external: [
     './generated',
     '@prisma/client',
+    '.prisma-flare',
+    'prisma-flare',
     'pg',
     'pluralize',
     'dotenv',

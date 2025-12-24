@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { generateQueries } from './generate-queries';
 import { generateCallbacksIndex } from './generate-callbacks';
+import { generateClient } from './generate-client';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -34,6 +35,7 @@ if (!command) {
 
 switch (command) {
   case 'generate':
+    generateClient();
     generateQueries();
     generateCallbacksIndex();
     break;

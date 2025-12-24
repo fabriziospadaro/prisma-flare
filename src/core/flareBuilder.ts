@@ -139,13 +139,13 @@ export interface RelationModelMap {
  */
 type GetRelationModel<K extends string> = K extends keyof RelationModelMap
   ? RelationModelMap[K]
-  : FlareBuilder<any, {}>;
+  : FlareBuilder<any, Record<string, never>>;
 
 /**
  * FlareBuilder for chainable Prisma queries with full type safety
  * The type safety is enforced through the ModelDelegate parameter
  */
-export default class FlareBuilder<T extends ModelName, Args extends Record<string, any> = {}> {
+export default class FlareBuilder<T extends ModelName, Args extends Record<string, any> = Record<string, never>> {
   protected model: ModelDelegate<T>;
   protected query: QueryArgs;
 
@@ -265,11 +265,11 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    *   .findMany()
    */
   whereGroup(
-    callback: (builder: FlareBuilder<T, {}>) => FlareBuilder<T, any>,
+    callback: (builder: FlareBuilder<T, Record<string, never>>) => FlareBuilder<T, any>,
     mode: 'AND' | 'OR' = 'AND'
   ): FlareBuilder<T, Args & { where: WhereInput<T> }> {
     // Create a fresh builder for the group
-    const groupBuilder = new FlareBuilder<T, {}>(this.model, {});
+    const groupBuilder = new FlareBuilder<T, Record<string, never>>(this.model, {});
     callback(groupBuilder);
 
     const groupWhere = groupBuilder.getQuery().where;
@@ -305,7 +305,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    *   .findMany()
    */
   orWhereGroup(
-    callback: (builder: FlareBuilder<T, {}>) => FlareBuilder<T, any>
+    callback: (builder: FlareBuilder<T, Record<string, never>>) => FlareBuilder<T, any>
   ): FlareBuilder<T, Args & { where: WhereInput<T> }> {
     return this.whereGroup(callback, 'OR');
   }

@@ -37,7 +37,7 @@ function parseRelations(schemaContent: string, models: string[]): Map<string, Re
       if (fieldMatch) {
         const fieldName = fieldMatch[1];
         const fieldType = fieldMatch[2];
-        const isArray = !!fieldMatch[3];
+        const _isArray = !!fieldMatch[3];
 
         // Check if fieldType is one of our models (it's a relation)
         if (models.includes(fieldType)) {
@@ -169,7 +169,7 @@ export default class ${model} extends FlareBuilder<'${modelCamel}'> {
   });
 
   // Also register by relation field names (e.g., 'author' -> User, 'posts' -> Post)
-  relations.forEach((rels, modelName) => {
+  relations.forEach((rels, _modelName) => {
     rels.forEach(rel => {
       registrationLines.push(`modelRegistry.register('${rel.fieldName}', ${rel.targetModel});`);
     });
@@ -253,7 +253,7 @@ exports.DB = DB;
   });
 
   // Add relation field name mappings
-  relations.forEach((rels, modelName) => {
+  relations.forEach((rels, _modelName) => {
     rels.forEach(rel => {
       // Only add if not already present (avoid duplicates)
       const entry = `    ${rel.fieldName}: ${rel.targetModel};`;

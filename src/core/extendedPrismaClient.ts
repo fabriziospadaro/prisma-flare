@@ -2,10 +2,41 @@ import { PrismaClient } from '@prisma/client';
 import type { PrismaClientOptions } from '@prisma/client/runtime/library';
 import FlareBuilder from './flareBuilder';
 import type { ModelName, ModelDelegate } from '../types';
+import { createHooksExtension, registerHooksLegacy } from './hookMiddleware';
+
+export interface FlareClientOptions extends PrismaClientOptions {
+  /**
+   * Enable callbacks/hooks middleware. When true (default), the middleware
+   * that executes your registered callbacks (beforeCreate, afterUpdate, etc.)
+   * is automatically attached.
+   *
+   * @default true
+   */
+  callbacks?: boolean;
+}
+
+/**
+ * Checks if the Prisma client supports the legacy $use middleware API (Prisma ≤6)
+ */
+function supportsPrisma6Middleware(prisma: PrismaClient): boolean {
+  return typeof (prisma as any).$use === 'function';
+}
 
 export class FlareClient extends PrismaClient {
-  constructor(options: PrismaClientOptions = {}) {
-    super(options);
+  constructor(options: FlareClientOptions = {}) {
+    const { callbacks = true, ...prismaOptions } = options;
+    super(prismaOptions);
+
+    if (callbacks) {
+      if (supportsPrisma6Middleware(this)) {
+        // Prisma 6 and below: use legacy $use middleware (mutates in place)
+        registerHooksLegacy(this);
+      } else {
+        // Prisma 7+: use client extensions (returns new instance)
+        const extension = createHooksExtension(this);
+        return (this as any).$extends(extension);
+      }
+    }
   }
 
   /**

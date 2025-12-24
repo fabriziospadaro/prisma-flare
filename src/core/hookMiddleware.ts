@@ -1,7 +1,6 @@
 import hookRegistry from './hookRegistry';
 import { Prisma, PrismaClient } from '@prisma/client';
 import type { ModelName, PrismaMiddlewareParams } from '../types';
-import { loadConfig, findProjectRoot } from '../cli/config';
 import fs from 'fs';
 import path from 'path';
 
@@ -217,43 +216,28 @@ export function registerHooksLegacy(prisma: PrismaClient): void {
 }
 
 /**
- * Registers hooks on the Prisma client and automatically loads callbacks.
- * Automatically detects Prisma version and uses the appropriate API:
- * - Prisma ≤6: Uses $use middleware
- * - Prisma 7+: Returns extended client with hooks extension
- *
- * Callbacks are loaded from the path specified in prisma-flare.config.json
- * (defaults to 'prisma/callbacks'). Set `callbacksPath` in config to customize.
- *
- * @param prisma - The Prisma client instance
- * @returns Promise resolving to the Prisma client (possibly extended for Prisma 7+)
+ * @deprecated Use `new FlareClient()` instead. FlareClient now automatically
+ * attaches the callbacks middleware. This function will be removed in a future version.
  *
  * @example
- * // In your db setup file:
- * export const db = await registerHooks(new FlareClient());
+ * // Old way (deprecated):
+ * import './callbacks';
+ * import { FlareClient, registerHooks } from 'prisma-flare';
+ * export const db = registerHooks(new FlareClient());
+ *
+ * // New way:
+ * import './callbacks';
+ * import { FlareClient } from 'prisma-flare';
+ * export const db = new FlareClient();
  */
-export async function registerHooks<T extends PrismaClient>(prisma: T): Promise<T> {
-  let client: T;
-
+export function registerHooks<T extends PrismaClient>(prisma: T): T {
   if (supportsPrisma6Middleware(prisma)) {
     // Prisma 6 and below: use legacy $use middleware
     registerHooksLegacy(prisma);
-    client = prisma;
+    return prisma;
   } else {
     // Prisma 7+: use client extensions
     const extension = createHooksExtension(prisma);
-    client = (prisma as any).$extends(extension) as T;
+    return (prisma as any).$extends(extension) as T;
   }
-
-  // Auto-load callbacks from configured path
-  try {
-    const config = loadConfig();
-    const projectRoot = findProjectRoot(process.cwd());
-    const callbacksPath = path.join(projectRoot, config.callbacksPath);
-    await loadCallbacks(callbacksPath);
-  } catch {
-    // Config loading may fail in some environments, silently continue
-  }
-
-  return client;
 }

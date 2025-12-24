@@ -1,3 +1,3 @@
-import { FlareClient, registerHooks } from 'prisma-flare';
+import { FlareClient } from 'prisma-flare';
 
-export const db = await registerHooks(new FlareClient());
+export const db = new FlareClient();

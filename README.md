@@ -73,27 +73,49 @@ prisma-flare automatically detects your Prisma version at runtime and uses the a
 Replace your standard `PrismaClient` with `FlareClient` in your database setup file (e.g., `src/db.ts` or `src/lib/prisma.ts`).
 
 ```typescript
-// src/db.ts
-import { FlareClient, registerHooks } from 'prisma-flare';
+// prisma/db.ts
+import './callbacks';  // Import generated index to register all hooks
+import { FlareClient } from 'prisma-flare';
 
-// Initialize hooks middleware and auto-load callbacks
-export const db = await registerHooks(new FlareClient());
+export const db = new FlareClient();
 ```
 
-`registerHooks()` is async and:
-- Registers the hooks middleware (using the appropriate API for your Prisma version)
-- Automatically loads all callback files from `prisma/callbacks` (or your configured path)
-- Returns the extended client instance
+`FlareClient` automatically attaches the callbacks middleware (using the appropriate API for your Prisma version). The callbacks import loads a generated barrel file that registers all your hooks - this pattern works in all environments (bundlers, Node.js, serverless, etc.).
 
-### 2. Generate Query Classes
+**With Prisma adapters:**
 
-Run the generator to create type-safe query classes for your specific schema.
+```typescript
+import './callbacks';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { FlareClient } from 'prisma-flare';
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+
+export const db = new FlareClient({ adapter });
+```
+
+**Disable callbacks middleware:**
+
+```typescript
+import { FlareClient } from 'prisma-flare';
+
+// If you don't use callbacks, disable the middleware for slightly less overhead
+export const db = new FlareClient({ callbacks: false });
+```
+
+### 2. Generate Query Classes & Callbacks Index
+
+Run the generator to create type-safe query classes and the callbacks barrel file.
 
 ```bash
 npx prisma-flare generate
 ```
 
-By default, this will look for your `db` instance in `src/db` and output queries to `src/models`.
+This command:
+- Generates query classes based on your `schema.prisma`
+- Generates `prisma/callbacks/index.ts` that imports all your callback files
+
+**Important:** Re-run this command after adding new callback files to update the index.
 
 ### 3. Configuration (Optional)
 
@@ -110,7 +132,7 @@ If your project structure is different, create a `prisma-flare.config.json` in y
 
 - `modelsPath`: Where to generate the query classes (defaults to `prisma/models`).
 - `dbPath`: Path to the file exporting your `db` instance (relative to project root, defaults to `prisma/db`).
-- `callbacksPath`: Directory containing your callback/hook files (defaults to `prisma/callbacks`). All `.ts`/`.js` files in this directory are automatically loaded when `registerHooks()` is called.
+- `callbacksPath`: Directory containing your callback/hook files (defaults to `prisma/callbacks`). The generator creates an `index.ts` barrel file in this directory.
 - `envPath`: Path to your environment file (optional, defaults to `.env`).
 - `plurals`: Custom pluralization for model names (optional).
 
@@ -203,7 +225,7 @@ await DB.instance.transaction(async (tx) => {
 
 ### Callhooks & Middleware
 
-Define hooks to run logic before or after database operations. Create callback files in your callbacks directory (default: `prisma/callbacks`) and they'll be automatically loaded.
+Define hooks to run logic before or after database operations. Create callback files in your callbacks directory (default: `prisma/callbacks`), then run `npx prisma-flare generate` to update the index.
 
 ```typescript
 // prisma/callbacks/user.ts
@@ -235,7 +257,7 @@ afterChange('post', 'published', async (oldValue, newValue, record) => {
 });
 ```
 
-All files in the callbacks directory are automatically imported when `registerHooks()` is called. No manual loading required.
+After creating callback files, run `npx prisma-flare generate` to update the index. The generated `index.ts` imports all callbacks, which you then import in your db setup file.
 
 #### Hook Configuration
 
@@ -306,24 +328,21 @@ This prevents false positives when:
 
 #### Advanced Hook Registration
 
-For more control over hook registration, prisma-flare exports additional utilities:
+For advanced use cases, prisma-flare exports lower-level utilities:
 
 ```typescript
 import {
-  registerHooks,           // Auto-detects Prisma version + auto-loads callbacks (recommended)
-  registerHooksLegacy,     // Force legacy $use API (Prisma ≤6 only, no auto-load)
+  registerHooksLegacy,     // Force legacy $use API (Prisma ≤6 only)
   createHooksExtension,    // Get raw extension for manual use
-  loadCallbacks            // Manually load callbacks from a custom path
+  loadCallbacks            // Manually load callbacks at runtime (dev only)
 } from 'prisma-flare';
 
-// Option 1: Auto-detect with auto-loading (recommended)
-const db = await registerHooks(new FlareClient());
-
-// Option 2: Manual callback loading from custom path
+// Manual extension on raw PrismaClient (advanced)
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient().$extends(createHooksExtension(new PrismaClient()));
-await loadCallbacks('/custom/path/to/callbacks');
 ```
+
+For most use cases, just use `new FlareClient()` which handles everything automatically.
 
 ## CLI Utilities
 

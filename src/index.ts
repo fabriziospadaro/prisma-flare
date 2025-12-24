@@ -1,5 +1,6 @@
 // Main entry point for Prisma Flare
 export { FlareClient, ExtendedPrismaClient } from './core/extendedPrismaClient';
+export type { FlareClientOptions } from './core/extendedPrismaClient';
 export { default as FlareBuilder } from './core/flareBuilder';
 export type { RelationModelMap } from './core/flareBuilder';
 export { modelRegistry } from './core/modelRegistry';

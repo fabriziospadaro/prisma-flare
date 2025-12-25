@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import type { DriverAdapter } from '@prisma/client/runtime/library';
 import FlareBuilder from './flareBuilder';
-import { createHooksExtension, registerHooksLegacy } from './hookMiddleware';
+import { createHooksExtension, registerHooksLegacy, setPrismaNamespace } from './hookMiddleware';
 import type { ModelName, ModelDelegate } from '../types';
 
 /**
@@ -46,10 +46,11 @@ export type PrismaNamespace = {
 };
 
 /**
- * Type for a PrismaClient-like constructor
+ * Type for a PrismaClient-like constructor.
+ * Uses `any` for options to accept any PrismaClient variant.
  */
 export interface PrismaClientLike {
-  new (options?: Record<string, unknown>): PrismaClient;
+  new (options?: any): PrismaClient;
 }
 
 /**
@@ -72,15 +73,24 @@ export interface FlareClientInstance extends PrismaClient {
 
 /**
  * Creates a FlareClient class that extends the provided PrismaClient.
- * This factory enables support for custom Prisma client output paths.
+ * This is the primary way to use prisma-flare, supporting both default
+ * and custom Prisma client output paths.
  *
  * @param BasePrismaClient - The PrismaClient class to extend
- * @param _PrismaNamespace - The Prisma namespace (optional, for future type inference)
+ * @param PrismaNamespaceArg - The Prisma namespace (required for hooks/extensions)
  * @returns A FlareClient class that extends BasePrismaClient
  *
  * @example
- * // For custom Prisma output paths:
- * import { PrismaClient, Prisma } from './generated/client';
+ * // Using default @prisma/client:
+ * import { PrismaClient, Prisma } from '@prisma/client';
+ * import { createFlareClient } from 'prisma-flare';
+ *
+ * const FlareClient = createFlareClient(PrismaClient, Prisma);
+ * export const db = new FlareClient();
+ *
+ * @example
+ * // Using custom Prisma output path:
+ * import { PrismaClient, Prisma } from './prisma/generated/client';
  * import { createFlareClient } from 'prisma-flare';
  *
  * const FlareClient = createFlareClient(PrismaClient, Prisma);
@@ -88,8 +98,11 @@ export interface FlareClientInstance extends PrismaClient {
  */
 export function createFlareClient(
   BasePrismaClient: PrismaClientLike,
-  _PrismaNamespace?: PrismaNamespace
+  PrismaNamespaceArg: PrismaNamespace
 ): FlareClientClass {
+  // Set the Prisma namespace for hooks extension
+  setPrismaNamespace(PrismaNamespaceArg);
+
   // Use a class expression that TypeScript can type-check
   const FlareClientImpl = class extends (BasePrismaClient as new (options?: Record<string, unknown>) => PrismaClient) {
     constructor(options: FactoryFlareClientOptions = {}) {

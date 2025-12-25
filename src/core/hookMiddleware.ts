@@ -1,8 +1,45 @@
 import hookRegistry from './hookRegistry';
-import { Prisma, PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import type { ModelName, PrismaMiddlewareParams } from '../types';
 import fs from 'fs';
 import path from 'path';
+
+/**
+ * Type for the Prisma namespace (contains defineExtension, etc.)
+ */
+export type PrismaNamespaceLike = {
+  defineExtension: (extension: any) => any;
+};
+
+// Global Prisma namespace holder - set by createFlareClient()
+let _PrismaNamespace: PrismaNamespaceLike | null = null;
+
+/**
+ * Sets the Prisma namespace for use by the hooks extension.
+ * Called automatically by createFlareClient().
+ *
+ * @param prisma - The Prisma namespace object (import { Prisma } from '@prisma/client')
+ */
+export function setPrismaNamespace(prisma: PrismaNamespaceLike): void {
+  _PrismaNamespace = prisma;
+}
+
+/**
+ * Gets the Prisma namespace, throwing if not initialized.
+ * @internal
+ */
+function getPrismaNamespace(): PrismaNamespaceLike {
+  if (!_PrismaNamespace) {
+    throw new Error(
+      'Prisma namespace not initialized. Use createFlareClient(PrismaClient, Prisma):\n\n' +
+      'import { PrismaClient, Prisma } from "@prisma/client"; // or your custom path\n' +
+      'import { createFlareClient } from "prisma-flare";\n\n' +
+      'const FlareClient = createFlareClient(PrismaClient, Prisma);\n' +
+      'export const db = new FlareClient();'
+    );
+  }
+  return _PrismaNamespace;
+}
 
 /**
  * Checks if the current runtime supports TypeScript imports natively.
@@ -183,14 +220,26 @@ function supportsPrisma6Middleware(prisma: PrismaClient): boolean {
 }
 
 /**
- * Creates a Prisma 7+ client extension for hooks
+ * Creates a Prisma 7+ client extension for hooks.
+ * Requires setPrismaNamespace() to be called first (done automatically by createFlareClient).
  */
 export function createHooksExtension(basePrisma: PrismaClient) {
+  const Prisma = getPrismaNamespace();
   return Prisma.defineExtension({
     name: 'prisma-flare-hooks',
     query: {
       $allModels: {
-        async $allOperations({ model, operation, args, query }) {
+        async $allOperations({
+          model,
+          operation,
+          args,
+          query,
+        }: {
+          model: string;
+          operation: string;
+          args: any;
+          query: (args: any) => Promise<any>;
+        }) {
           return executeHookLogic(
             basePrisma,
             model,
@@ -216,18 +265,14 @@ export function registerHooksLegacy(prisma: PrismaClient): void {
 }
 
 /**
- * @deprecated Use `new FlareClient()` instead. FlareClient now automatically
- * attaches the callbacks middleware. This function will be removed in a future version.
+ * @deprecated Use `createFlareClient()` instead. This function will be removed in a future version.
  *
  * @example
- * // Old way (deprecated):
- * import './callbacks';
- * import { FlareClient, registerHooks } from 'prisma-flare';
- * export const db = registerHooks(new FlareClient());
- *
  * // New way:
- * import './callbacks';
- * import { FlareClient } from 'prisma-flare';
+ * import { PrismaClient, Prisma } from '@prisma/client';
+ * import { createFlareClient } from 'prisma-flare';
+ *
+ * const FlareClient = createFlareClient(PrismaClient, Prisma);
  * export const db = new FlareClient();
  */
 export function registerHooks<T extends PrismaClient>(prisma: T): T {

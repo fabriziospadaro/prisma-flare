@@ -1,6 +1,4 @@
 // Main entry point for Prisma Flare
-export { FlareClient, ExtendedPrismaClient } from './core/extendedPrismaClient';
-export type { FlareClientOptions } from './core/extendedPrismaClient';
 export { createFlareClient } from './core/createFlareClient';
 export type {
   PrismaNamespace,
@@ -24,7 +22,8 @@ export {
 } from './core/hooks';
 export { default as hookRegistry } from './core/hookRegistry';
 export type { HookConfig } from './core/hookRegistry';
-export { registerHooks, registerHooksLegacy, createHooksExtension, loadCallbacks } from './core/hookMiddleware';
+export { registerHooks, registerHooksLegacy, createHooksExtension, loadCallbacks, setPrismaNamespace } from './core/hookMiddleware';
+export type { PrismaNamespaceLike } from './core/hookMiddleware';
 export { registry as dbAdapterRegistry } from './core/adapters';
 export type { DatabaseAdapter } from './core/adapters';
 

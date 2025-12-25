@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import pluralize from 'pluralize';
 import { loadConfig, findProjectRoot } from './config';
+import { hasCustomPrismaOutput } from './schema-parser';
 
 function toCamelCase(str: string): string {
   return str.charAt(0).toLowerCase() + str.slice(1);
@@ -81,6 +82,9 @@ export function generateQueries() {
   if (!relativePathToDb.startsWith('.')) relativePathToDb = './' + relativePathToDb;
   relativePathToDb = relativePathToDb.replace(/\\/g, '/');
 
+  // Check if this project uses custom Prisma output
+  const isCustomOutput = hasCustomPrismaOutput(rootDir);
+
   models.forEach(model => {
     const queryFileName = `${model}.ts`;
     const queryFilePath = path.join(queriesDir, queryFileName);
@@ -92,8 +96,13 @@ export function generateQueries() {
 
     console.log(`Generating ${queryFileName}...`);
 
-    let queryBuilderImport = "import { FlareBuilder } from 'prisma-flare';";
+    // For custom output, import from .prisma-flare which has proper types
+    // For standard output, import from prisma-flare directly
+    let queryBuilderImport = isCustomOutput
+      ? "import { FlareBuilder } from '.prisma-flare';"
+      : "import { FlareBuilder } from 'prisma-flare';";
 
+    // Check if we're in the prisma-flare package itself (development)
     const localQueryBuilderPath = path.join(rootDir, 'src/core/flareBuilder.ts');
     if (fs.existsSync(localQueryBuilderPath)) {
       const absSrcPath = path.join(rootDir, 'src');

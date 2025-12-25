@@ -1,7 +1,5 @@
 // This demonstrates using prisma-flare with a CUSTOM Prisma output path
-// The key difference: we import from './generated/client' instead of '@prisma/client'
-import { PrismaClient, Prisma } from './generated/client';
-import { createFlareClient } from 'prisma-flare';
+// For custom output, import FlareClient from '.prisma-flare' for proper type inference
+import { FlareClient } from '.prisma-flare';
 
-const FlareClient = createFlareClient(PrismaClient, Prisma);
 export const db = new FlareClient();

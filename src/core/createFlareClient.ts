@@ -64,7 +64,13 @@ export interface FlareClientClass {
  * Instance type for FlareClient
  */
 export interface FlareClientInstance extends PrismaClient {
-  from<M extends ModelName>(modelName: M): FlareBuilder<M>;
+  /**
+   * Creates a new FlareBuilder instance for the specified model.
+   * Accepts both PascalCase ('User') and camelCase ('user') model names.
+   */
+  from<M extends ModelName | Capitalize<ModelName>>(
+    modelName: M
+  ): FlareBuilder<Uncapitalize<M> extends ModelName ? Uncapitalize<M> : never>;
   transaction<R>(
     fn: (tx: FlareClientInstance) => Promise<R>,
     options?: { maxWait?: number; timeout?: number; isolationLevel?: unknown }

@@ -7,6 +7,7 @@
  */
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { beforeCreate, afterCreate, hookRegistry, FlareBuilder } from 'prisma-flare';
+import { DB } from 'prisma-flare/generated';
 import { db } from '../prisma/db';
 
 describe('Custom Prisma Output Path Support', () => {
@@ -197,6 +198,101 @@ describe('Custom Prisma Output Path Support', () => {
 
       expect(users[0].posts).toHaveLength(1);
       expect(users[0].posts[0].title).toBe('Flare Post');
+    });
+  });
+
+  describe('DB.models pattern with custom output', () => {
+    it('should access DB.users', () => {
+      expect(DB.users).toBeDefined();
+      expect(typeof DB.users.where).toBe('function');
+      expect(typeof DB.users.findMany).toBe('function');
+    });
+
+    it('should access DB.posts', () => {
+      expect(DB.posts).toBeDefined();
+      expect(typeof DB.posts.where).toBe('function');
+      expect(typeof DB.posts.findMany).toBe('function');
+    });
+
+    it('should create a user with DB.users', async () => {
+      const user = await DB.users.create({
+        email: 'db-users@example.com',
+        name: 'DB Users Test',
+      });
+
+      expect(user).toBeDefined();
+      expect(user.email).toBe('db-users@example.com');
+      expect(user.name).toBe('DB Users Test');
+    });
+
+    it('should query users with DB.users.where', async () => {
+      await DB.users.create({
+        email: 'query-test@example.com',
+        name: 'Query Test User',
+      });
+
+      const users = await DB.users
+        .where({ email: 'query-test@example.com' })
+        .findMany();
+
+      expect(users).toHaveLength(1);
+      expect(users[0].name).toBe('Query Test User');
+    });
+
+    it('should create posts with DB.posts', async () => {
+      const user = await DB.users.create({
+        email: 'author@example.com',
+        name: 'Author',
+      });
+
+      const post = await DB.posts.create({
+        title: 'Test Post',
+        authorId: user.id,
+      });
+
+      expect(post).toBeDefined();
+      expect(post.title).toBe('Test Post');
+      expect(post.authorId).toBe(user.id);
+    });
+
+    it('should support chained queries with DB.users', async () => {
+      await DB.users.createMany([
+        { email: 'user1@db.com', name: 'User 1' },
+        { email: 'user2@db.com', name: 'User 2' },
+        { email: 'user3@db.com', name: 'User 3' },
+      ]);
+
+      const users = await DB.users
+        .where({ email: { contains: '@db.com' } })
+        .order({ email: 'asc' })
+        .limit(2)
+        .findMany();
+
+      expect(users).toHaveLength(2);
+      expect(users[0].email).toBe('user1@db.com');
+    });
+
+    it('should support include with DB.users', async () => {
+      await DB.users.create({
+        email: 'include-test@example.com',
+        name: 'Include Test',
+      });
+
+      const user = await DB.users.where({ email: 'include-test@example.com' }).findFirst();
+      if (user) {
+        await DB.posts.create({
+          title: 'Included Post',
+          authorId: user.id,
+        });
+      }
+
+      const usersWithPosts = await DB.users
+        .where({ email: 'include-test@example.com' })
+        .include('posts')
+        .findMany();
+
+      expect(usersWithPosts[0].posts).toHaveLength(1);
+      expect(usersWithPosts[0].posts[0].title).toBe('Included Post');
     });
   });
 });

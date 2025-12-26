@@ -117,37 +117,48 @@ export declare class FlareBuilder<
 > {
   constructor(model: ModelDelegate<T>);
 
-  // Query Building Methods
+  // Query Building Methods - Where conditions
   where(condition: WhereInput<T>): FlareBuilder<T, Args & { where: WhereInput<T> }>;
+  andWhere(condition: WhereInput<T>): FlareBuilder<T, Args & { where: WhereInput<T> }>;
+  orWhere(condition: WhereInput<T>): FlareBuilder<T, Args & { where: WhereInput<T> }>;
+  whereGroup(callback: (builder: FlareBuilder<T, Record<string, never>>) => FlareBuilder<T, any>, mode?: 'AND' | 'OR'): FlareBuilder<T, Args & { where: WhereInput<T> }>;
+  orWhereGroup(callback: (builder: FlareBuilder<T, Record<string, never>>) => FlareBuilder<T, any>): FlareBuilder<T, Args & { where: WhereInput<T> }>;
+  withId(id: number | string): FlareBuilder<T, Args & { where: { id: number | string } }>;
+
+  // Query Building Methods - Ordering and Limiting
   order(orderBy: OrderByInput<T>): FlareBuilder<T, Args & { orderBy: OrderByInput<T> }>;
-  select<S extends SelectInput<T>>(fields: S): FlareBuilder<T, Args & { select: S }>;
-  include<K extends IncludeKey<T>>(relation: K, options?: boolean | Record<string, any>): FlareBuilder<T, Args & { include: Record<K, true> }>;
-  distinct(fields: DistinctInput<T>): FlareBuilder<T, Args & { distinct: DistinctInput<T> }>;
+  first(key?: keyof RecordType<T> | string): FlareBuilder<T, Args & { orderBy: any; take: number }>;
+  last(key?: keyof RecordType<T> | string): FlareBuilder<T, Args & { orderBy: any; take: number }>;
+  limit(count: number): FlareBuilder<T, Args & { take: number }>;
   skip(count: number): FlareBuilder<T, Args & { skip: number }>;
   take(count: number): FlareBuilder<T, Args & { take: number }>;
-  limit(count: number): FlareBuilder<T, Args & { take: number }>;
   offset(count: number): FlareBuilder<T, Args & { skip: number }>;
   cursor(cursor: Record<string, any>): FlareBuilder<T, Args>;
+  distinct(fields: DistinctInput<T>): FlareBuilder<T, Args & { distinct: DistinctInput<T> }>;
+
+  // Query Building Methods - Selection
+  select<S extends SelectInput<T>>(fields: S): FlareBuilder<T, Args & { select: S }>;
+  include<K extends IncludeKey<T>>(relation: K, callback?: (builder: any) => any): FlareBuilder<T, Args & { include: Record<K, true> }>;
 
   // Read Operations
   findMany(): Promise<BasePrisma.Result<ModelDelegate<T>, Args, 'findMany'>>;
   findFirst(): Promise<BasePrisma.Result<ModelDelegate<T>, Args, 'findFirst'>>;
   findFirstOrThrow(): Promise<NonNullable<BasePrisma.Result<ModelDelegate<T>, Args, 'findFirst'>>>;
-  findUnique(where: WhereInput<T>): Promise<BasePrisma.Result<ModelDelegate<T>, Args & { where: WhereInput<T> }, 'findFirst'>>;
-  findUniqueOrThrow(where: WhereInput<T>): Promise<NonNullable<BasePrisma.Result<ModelDelegate<T>, Args & { where: WhereInput<T> }, 'findFirst'>>>;
-  first(): Promise<BasePrisma.Result<ModelDelegate<T>, Args, 'findFirst'>>;
+  findUnique(): Promise<BasePrisma.Result<ModelDelegate<T>, Args, 'findUnique'>>;
+  findUniqueOrThrow(): Promise<NonNullable<BasePrisma.Result<ModelDelegate<T>, Args, 'findUnique'>>>;
   all(): Promise<BasePrisma.Result<ModelDelegate<T>, Args, 'findMany'>>;
   get(): Promise<BasePrisma.Result<ModelDelegate<T>, Args, 'findMany'>>;
   pluck<K extends keyof RecordType<T>>(field: K): Promise<Array<RecordType<T>[K]>>;
+  only<K extends keyof RecordType<T>>(field: K): Promise<RecordType<T>[K] | null>;
 
   // Write Operations
   create(data: CreateData<T>): Promise<RecordType<T>>;
   createMany(data: CreateManyData<T>[]): Promise<{ count: number }>;
   update(data: UpdateData<T>): Promise<RecordType<T>>;
   updateMany(data: UpdateData<T>): Promise<{ count: number }>;
-  upsert(args: { create: CreateData<T>; update: UpdateData<T> }): Promise<RecordType<T>>;
-  delete(): Promise<RecordType<T>>;
-  deleteMany(): Promise<{ count: number }>;
+  upsert(args?: { where?: WhereInput<T>; create: CreateData<T>; update: UpdateData<T> }): Promise<RecordType<T>>;
+  delete(args?: { where?: WhereInput<T> }): Promise<RecordType<T>>;
+  deleteMany(args?: { where?: WhereInput<T> }): Promise<{ count: number }>;
 
   // Aggregations
   count(): Promise<number>;
@@ -163,9 +174,13 @@ export declare class FlareBuilder<
   paginate(page?: number, perPage?: number): Promise<PaginatedResult<BasePrisma.Result<ModelDelegate<T>, Args, 'findMany'>[number]>>;
 
   // Existence Check
-  exists(): Promise<boolean>;
+  exists(existenceKey?: string): Promise<boolean>;
 
-  // Raw Query Access
+  // Utilities
+  when(condition: boolean | (() => boolean), callback: (qb: FlareBuilder<T, Args>) => void): FlareBuilder<T, Args>;
+  chunk(size: number, callback: (results: RecordType<T>[]) => Promise<void> | void): Promise<void>;
+  clone(): FlareBuilder<T, Args>;
+  getQuery(): Record<string, any>;
   toQuery(): Args;
 }
 

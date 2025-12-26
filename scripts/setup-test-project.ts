@@ -8,11 +8,12 @@ const __dirname = path.dirname(__filename);
 
 const rootDir = path.resolve(__dirname, '..');
 
-type ProjectType = 'default' | 'custom' | 'all';
+type ProjectType = 'default' | 'custom' | 'prisma-client' | 'all';
 
 function getProjectType(): ProjectType {
   const arg = process.argv[2];
   if (arg === 'custom') return 'custom';
+  if (arg === 'prisma-client') return 'prisma-client';
   if (arg === 'all') return 'all';
   return 'default';
 }
@@ -113,6 +114,10 @@ try {
 
   if (projectType === 'custom' || projectType === 'all') {
     setupProject('test-project-custom', true);
+  }
+
+  if (projectType === 'prisma-client' || projectType === 'all') {
+    setupProject('test-project-prisma-client', true);
   }
 
   console.log('All setups completed successfully!');

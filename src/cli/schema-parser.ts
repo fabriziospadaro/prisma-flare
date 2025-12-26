@@ -97,3 +97,22 @@ export function hasCustomPrismaOutput(rootDir: string): boolean {
 
   return config?.output != null;
 }
+
+/**
+ * Gets the Prisma generator provider type from the schema.
+ *
+ * @param rootDir - The project root directory
+ * @returns The provider type ('prisma-client-js' or 'prisma-client')
+ */
+export function getPrismaProvider(rootDir: string): string {
+  const schemaPath = path.join(rootDir, 'prisma', 'schema.prisma');
+
+  if (!fs.existsSync(schemaPath)) {
+    return 'prisma-client-js';
+  }
+
+  const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
+  const config = parseGeneratorClient(schemaContent);
+
+  return config?.provider || 'prisma-client-js';
+}

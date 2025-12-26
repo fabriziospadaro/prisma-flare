@@ -169,9 +169,6 @@ export declare class FlareBuilder<
   toQuery(): Args;
 }
 
-// Re-export the FlareBuilder class (runtime) from prisma-flare
-export { default as FlareBuilder } from 'prisma-flare/flareBuilder';
-
 // ============================================================================
 // FlareClient - Properly typed for your Prisma schema
 // ============================================================================

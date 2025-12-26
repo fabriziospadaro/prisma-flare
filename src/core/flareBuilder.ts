@@ -120,7 +120,7 @@ function deepClone<T>(obj: T): T {
 /**
  * Global interface for relation-to-model mapping.
  * This is augmented by prisma-flare/generated to provide type-safe includes.
- * 
+ *
  * @example
  * // In your project, prisma-flare generate creates:
  * declare module 'prisma-flare' {
@@ -131,7 +131,9 @@ function deepClone<T>(obj: T): T {
  * }
  */
 export interface RelationModelMap {
-  [key: string]: FlareBuilder<any, any>;
+  // Using 'any' to allow model classes that extend FlareBuilder from different sources
+  // (e.g., from .prisma-flare for custom output paths)
+  [key: string]: any;
 }
 
 /**

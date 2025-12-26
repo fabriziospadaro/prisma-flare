@@ -5,7 +5,9 @@ export type {
   PrismaClientLike,
   FlareClientClass,
   FlareClientInstance,
-  FactoryFlareClientOptions
+  FactoryFlareClientOptions,
+  // Export as FlareClientOptions for generated code compatibility
+  FactoryFlareClientOptions as FlareClientOptions
 } from './core/createFlareClient';
 export { default as FlareBuilder } from './core/flareBuilder';
 export type { RelationModelMap } from './core/flareBuilder';
@@ -46,5 +48,6 @@ export type {
   BeforeHookCallback,
   AfterHookCallback,
   ColumnChangeCallback,
-  AggregateResult
+  AggregateResult,
+  PaginatedResult
 } from './types';

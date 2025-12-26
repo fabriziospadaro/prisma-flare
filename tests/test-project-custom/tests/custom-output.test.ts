@@ -62,7 +62,7 @@ describe('Custom Prisma Output Path Support', () => {
         data: { email: 'builder@example.com', name: 'Builder User' }
       });
 
-      const users = await db.from('User').where({ email: 'builder@example.com' }).findMany();
+      const users = await db.from('user').where({ email: 'builder@example.com' }).findMany();
       expect(users).toHaveLength(1);
       expect(users[0].email).toBe('builder@example.com');
     });
@@ -77,7 +77,7 @@ describe('Custom Prisma Output Path Support', () => {
       });
 
       const users = await db
-        .from('User')
+        .from('user')
         .where({ name: { contains: 'User' } })
         .order({ email: 'asc' })
         .limit(2)
@@ -150,7 +150,7 @@ describe('Custom Prisma Output Path Support', () => {
         });
 
         // Use from() in transaction
-        const posts = await tx.from('Post').where({ authorId: user.id }).findMany();
+        const posts = await tx.from('post').where({ authorId: user.id }).findMany();
         expect(posts).toHaveLength(1);
       });
 
@@ -191,7 +191,7 @@ describe('Custom Prisma Output Path Support', () => {
       });
 
       const users = await db
-        .from('User')
+        .from('user')
         .where({ email: 'flare-rel@example.com' })
         .include('posts')
         .findMany();

@@ -161,7 +161,7 @@ Example with custom plurals:
 
 ### Custom Prisma Output Path
 
-If you use a custom `output` in your Prisma schema, simply import from your custom path:
+If you use a custom `output` in your Prisma schema, prisma-flare fully supports it with complete type safety.
 
 ```prisma
 // schema.prisma
@@ -180,7 +180,13 @@ const FlareClient = createFlareClient(PrismaClient, Prisma);
 export const db = new FlareClient();
 ```
 
-That's it! `createFlareClient` works with any Prisma client location - just import `PrismaClient` and `Prisma` from wherever your client is generated.
+After running `npx prisma-flare generate`, you get full IntelliSense and type safety for:
+- All FlareBuilder methods (`where()`, `include()`, `findMany()`, etc.)
+- Model-specific field types
+- Relation types in includes
+- Create/update data types
+
+`createFlareClient` works with any Prisma client location - just import `PrismaClient` and `Prisma` from wherever your client is generated.
 
 ## Usage
 
@@ -222,10 +228,12 @@ const rawDb = DB.instance;
 
 Prisma Flare provides a powerful wrapper around Prisma's interactive transactions, allowing you to use the fluent `from()` API within a transaction scope.
 
+> **Note:** The `from()` method accepts **lowercase** model names only (e.g., `'user'`, `'post'`), matching Prisma's delegate pattern.
+
 ```typescript
 // Simple transaction
 const result = await DB.instance.transaction(async (tx) => {
-  // Create a user
+  // Create a user (lowercase model name)
   const user = await tx.from('user').create({
     email: 'tx-user@example.com',
     name: 'Transaction User',

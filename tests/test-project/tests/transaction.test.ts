@@ -13,12 +13,12 @@ describe('Transaction API Tests', () => {
 
   it('should execute queries within a transaction using the query builder', async () => {
     const result = await DB.instance.transaction(async (tx) => {
-      const user = await tx.from('User').create({
+      const user = await tx.from('user').create({
         email: 'tx-user@example.com',
         name: 'Transaction User',
       });
 
-      const post = await tx.from('Post').create({
+      const post = await tx.from('post').create({
         title: 'Transaction Post',
         content: 'Content',
         authorId: user.id,
@@ -40,7 +40,7 @@ describe('Transaction API Tests', () => {
   it('should rollback transaction on error', async () => {
     try {
       await DB.instance.transaction(async (tx) => {
-        await tx.from('User').create({
+        await tx.from('user').create({
           email: 'rollback@example.com',
           name: 'Rollback User',
         });
@@ -64,18 +64,18 @@ describe('Transaction API Tests', () => {
 
     await DB.instance.transaction(async (tx) => {
       // Read
-      const user = await tx.from('User').withId(originalUser.id).findUniqueOrThrow();
+      const user = await tx.from('user').withId(originalUser.id).findUniqueOrThrow();
 
       // Modify
       const newName = user.name + ' Updated';
 
       // Write
-      await tx.from('User').withId(user.id).update({
+      await tx.from('user').withId(user.id).update({
         name: newName
       });
 
       // Create related record
-      await tx.from('Post').create({
+      await tx.from('post').create({
         title: 'New Post',
         authorId: user.id,
         published: true
@@ -100,18 +100,18 @@ describe('Transaction API Tests', () => {
     try {
       await DB.instance.transaction(async (tx) => {
         // Step 1: Update existing user
-        await tx.from('User').withId(user.id).update({
+        await tx.from('user').withId(user.id).update({
           name: 'Changed Name'
         });
 
         // Step 2: Create new user
-        const newUser = await tx.from('User').create({
+        const newUser = await tx.from('user').create({
           email: 'fail-user@example.com',
           name: 'Fail User'
         });
 
         // Step 3: Create post for new user
-        await tx.from('Post').create({
+        await tx.from('post').create({
           title: 'Fail Post',
           authorId: newUser.id
         });
@@ -135,19 +135,19 @@ describe('Transaction API Tests', () => {
   it('should handle batch operations within transaction', async () => {
     await DB.instance.transaction(async (tx) => {
       // Create Many
-      await tx.from('User').createMany([
+      await tx.from('user').createMany([
         { email: 'batch1@example.com', name: 'Batch 1' },
         { email: 'batch2@example.com', name: 'Batch 2' },
         { email: 'batch3@example.com', name: 'Batch 3' },
       ]);
 
       // Update Many
-      await tx.from('User')
+      await tx.from('user')
         .where({ email: { contains: 'batch' } })
         .updateMany({ name: 'Processed Batch' });
 
       // Delete Many (subset)
-      await tx.from('User')
+      await tx.from('user')
         .where({ email: 'batch3@example.com' })
         .deleteMany();
     });
@@ -163,15 +163,15 @@ describe('Transaction API Tests', () => {
     const email = 'conditional@example.com';
 
     await DB.instance.transaction(async (tx) => {
-      const existing = await tx.from('User').where({ email }).findFirst();
+      const existing = await tx.from('user').where({ email }).findFirst();
 
       if (!existing) {
-        await tx.from('User').create({
+        await tx.from('user').create({
           email,
           name: 'Created Conditionally'
         });
       } else {
-        await tx.from('User').withId(existing.id).update({
+        await tx.from('user').withId(existing.id).update({
           name: 'Updated Conditionally'
         });
       }
@@ -182,15 +182,15 @@ describe('Transaction API Tests', () => {
 
     // Run again to trigger update path
     await DB.instance.transaction(async (tx) => {
-      const existing = await tx.from('User').where({ email }).findFirst();
+      const existing = await tx.from('user').where({ email }).findFirst();
 
       if (!existing) {
-        await tx.from('User').create({
+        await tx.from('user').create({
           email,
           name: 'Created Conditionally'
         });
       } else {
-        await tx.from('User').withId(existing.id).update({
+        await tx.from('user').withId(existing.id).update({
           name: 'Updated Conditionally'
         });
       }

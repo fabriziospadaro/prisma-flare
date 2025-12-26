@@ -184,11 +184,9 @@ export declare class FlareClient extends BasePrismaClient {
 
   /**
    * Creates a new FlareBuilder instance for the specified model.
-   * @param modelName - The name of the model (e.g., 'user', 'User', 'post', 'Post')
+   * @param modelName - The lowercase model name (e.g., 'user', 'post')
    */
-  from<M extends ModelName | Capitalize<ModelName>>(
-    modelName: M
-  ): FlareBuilder<Uncapitalize<M> extends ModelName ? Uncapitalize<M> : never>;
+  from<M extends ModelName>(modelName: M): FlareBuilder<M>;
 
   /**
    * Executes operations within a transaction.
@@ -312,12 +310,10 @@ export declare class FlareClient extends BasePrismaClient {
 
   /**
    * Creates a new FlareBuilder instance for the specified model.
-   * @param modelName - The name of the model (e.g., 'user', 'User', 'post', 'Post')
+   * @param modelName - The lowercase model name (e.g., 'user', 'post')
    * @returns FlareBuilder instance
    */
-  from<T extends ModelName | Capitalize<ModelName>>(
-    modelName: T
-  ): FlareBuilder<Uncapitalize<T> extends ModelName ? Uncapitalize<T> : never>;
+  from<T extends ModelName>(modelName: T): FlareBuilder<T>;
 
   /**
    * Executes a transaction with the FlareClient capabilities.

@@ -17,7 +17,7 @@ tests/
 |--------------|-------------------|-------------|---------------------|
 | `default-client` | `prisma-client-js` | Default (`@prisma/client`) | `@prisma/client` |
 | `custom-output` | `prisma-client-js` | `./prisma/generated/client` | `./prisma/generated/client` |
-| `new-provider` | `prisma-client` | `./prisma/generated/client` | `./prisma/generated/client/client` |
+| `new-provider` | `prisma-client` | `./prisma/generated` | `./prisma/generated/client` |
 
 Each test project verifies:
 - **FlareBuilder API**: `where()`, `order()`, `limit()`, `include()`, etc.

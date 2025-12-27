@@ -112,7 +112,17 @@ const FlareClient = createFlareClient(PrismaClient, Prisma);
 export const db = new FlareClient();
 ```
 
-For the new `prisma-client` provider (Prisma 7+), see [Configuration](docs/configuration.md#new-provider-prisma-client---prisma-7).
+For the new `prisma-client` provider (Prisma 7+), import from the generated `flare.ts`:
+
+```typescript
+import { FlareClient } from './generated/flare';
+import { PrismaPg } from '@prisma/adapter-pg';
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+export const db = new FlareClient({ adapter });
+```
+
+See [Configuration](docs/configuration.md#new-provider-prisma-client---prisma-7) for full setup.
 
 ## Transactions
 

@@ -92,31 +92,31 @@ export const db = new FlareClient();
 
 ### New Provider (`prisma-client` - Prisma 7+)
 
-The new TypeScript-first generator requires a driver adapter:
+The new TypeScript-first generator requires a driver adapter. After running `npx prisma generate`, prisma-flare generates a `flare.ts` file alongside your Prisma client with full type definitions.
 
 ```prisma
 // schema.prisma
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 generator client {
   provider = "prisma-client"
-  output   = "./generated/client"
+  output   = "./generated"
 }
 ```
 
 ```typescript
 // prisma/db.ts
 import './callbacks';
-import { PrismaClient, Prisma } from './generated/client/client';
-import { PrismaLibSQL } from '@prisma/adapter-libsql';
-import { createFlareClient } from 'prisma-flare';
+import { FlareClient } from './generated/flare';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const adapter = new PrismaLibSQL({ url: 'file:./prisma/dev.db' });
-const FlareClient = createFlareClient(PrismaClient, Prisma);
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 export const db = new FlareClient({ adapter });
 ```
+
+**Important**: Run `npx prisma generate` before `npx prisma-flare generate` to create the client directory first.
 
 ---
 

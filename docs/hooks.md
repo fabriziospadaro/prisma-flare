@@ -6,6 +6,8 @@ prisma-flare provides a powerful callback system for running logic before or aft
 
 Create callback files in your callbacks directory (default: `prisma/callbacks`), then run `npx prisma-flare generate` to update the index.
 
+### Default `@prisma/client`
+
 ```typescript
 // prisma/db.ts
 import './callbacks';  // Import generated index to register all hooks
@@ -14,6 +16,18 @@ import { createFlareClient } from 'prisma-flare';
 
 const FlareClient = createFlareClient(PrismaClient, Prisma);
 export const db = new FlareClient();
+```
+
+### New Provider (`prisma-client` - Prisma 7+)
+
+```typescript
+// prisma/db.ts
+import './callbacks';
+import { FlareClient } from './generated/flare';
+import { PrismaPg } from '@prisma/adapter-pg';
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+export const db = new FlareClient({ adapter });
 ```
 
 ## Basic Hooks

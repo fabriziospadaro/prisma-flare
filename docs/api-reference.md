@@ -197,22 +197,22 @@ const page = await DB.users.skip(20).limit(10).findMany();
 ```
 
 ### `distinct(fields)`
-Returns only distinct records.
+Returns only distinct records. Takes an array of field names.
 
 ```typescript
 const distinctEmails = await DB.users
-  .distinct({ email: true })
+  .distinct(['email'])
   .select({ email: true })
   .findMany();
 ```
 
 ### `groupBy(fields)` and `having(condition)`
-Groups results and filters aggregates.
+Groups results and filters aggregates. Takes an array of field names.
 
 ```typescript
-const authors = await DB.posts
-  .groupBy({ authorId: true })
-  .having({ id: { _count: { gt: 5 } } })
+const postCounts = await DB.posts
+  .groupBy(['authorId'])
+  .having({ authorId: { _count: { gt: 5 } } })
   .findMany();
 ```
 

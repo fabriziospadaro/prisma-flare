@@ -58,7 +58,7 @@ type PrismaArgs<T extends ModelName, A extends keyof ModelDelegate<T>> =
 /** FindMany args type */
 type FindManyArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'findMany'>>;
 
-/** Where input type */
+/** Where input type (for findMany, etc.) */
 type WhereInput<T extends ModelName> = FindManyArgs<T> extends { where?: infer W } ? W : never;
 
 /** OrderBy input type */
@@ -83,6 +83,18 @@ type CreateManyData<T extends ModelName> = 'createMany' extends keyof ModelDeleg
 
 /** Update data type */
 type UpdateData<T extends ModelName> = NonNullable<PrismaArgs<T, 'update'>> extends { data: infer D } ? D : never;
+
+/** Helper to make where clause optional */
+type OptionalWhere<T> = T extends { where: any } ? Omit<T, 'where'> & { where?: T['where'] } : T;
+
+/** Upsert args type (with optional where, includes compound unique constraints) */
+type UpsertArgs<T extends ModelName> = OptionalWhere<NonNullable<PrismaArgs<T, 'upsert'>>>;
+
+/** Delete args type (with optional where, includes compound unique constraints) */
+type DeleteArgs<T extends ModelName> = OptionalWhere<NonNullable<PrismaArgs<T, 'delete'>>>;
+
+/** DeleteMany args type */
+type DeleteManyArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'deleteMany'>>;
 
 /** GroupBy args type */
 type GroupByArgs<T extends ModelName> = NonNullable<PrismaArgs<T, 'groupBy'>>;
@@ -157,9 +169,9 @@ export declare class FlareBuilder<
   createMany(data: CreateManyData<T>[]): Promise<{ count: number }>;
   update(data: UpdateData<T>): Promise<RecordType<T>>;
   updateMany(data: UpdateData<T>): Promise<{ count: number }>;
-  upsert(args?: { where?: WhereInput<T>; create: CreateData<T>; update: UpdateData<T> }): Promise<RecordType<T>>;
-  delete(args?: { where?: WhereInput<T> }): Promise<RecordType<T>>;
-  deleteMany(args?: { where?: WhereInput<T> }): Promise<{ count: number }>;
+  upsert(args?: UpsertArgs<T>): Promise<RecordType<T>>;
+  delete(args?: DeleteArgs<T>): Promise<RecordType<T>>;
+  deleteMany(args?: DeleteManyArgs<T>): Promise<{ count: number }>;
 
   // Aggregations
   count(): Promise<number>;

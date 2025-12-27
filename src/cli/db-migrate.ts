@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
 import { execSync } from 'child_process';
+import { generateClient } from './generate-client';
 import { generateQueries } from './generate-queries';
+import { generateCallbacksIndex } from './generate-callbacks';
 
 function runMigrations(): void {
   const databaseUrl = process.env.DATABASE_URL;
@@ -26,9 +28,11 @@ function runMigrations(): void {
 
     console.log('✓ Migrations completed successfully');
 
-    console.log('🔄 Generating Query classes...');
+    console.log('🔄 Generating prisma-flare client...');
+    generateClient();
     generateQueries();
-    console.log('✓ Query classes generated successfully');
+    generateCallbacksIndex();
+    console.log('✓ prisma-flare generation completed successfully');
 
     process.exit(0);
   } catch (error) {

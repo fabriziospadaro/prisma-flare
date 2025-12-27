@@ -2,6 +2,9 @@
 
 import { execSync } from 'child_process';
 import * as readline from 'readline';
+import { generateClient } from './generate-client';
+import { generateQueries } from './generate-queries';
+import { generateCallbacksIndex } from './generate-callbacks';
 
 function confirm(question: string): Promise<boolean> {
   const rl = readline.createInterface({
@@ -46,6 +49,13 @@ async function resetDatabase(): Promise<void> {
     });
 
     console.log('✓ Database reset successfully');
+
+    console.log('🔄 Generating prisma-flare client...');
+    generateClient();
+    generateQueries();
+    generateCallbacksIndex();
+    console.log('✓ prisma-flare generation completed successfully');
+
     process.exit(0);
   } catch (error) {
     console.error('❌ Error resetting database:', error);

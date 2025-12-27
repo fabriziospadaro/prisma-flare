@@ -127,14 +127,13 @@ export function createFlareClient(
 
     /**
      * Creates a new FlareBuilder instance for the specified model.
-     * @param modelName - The name of the model.
+     * @param modelName - The lowercase model name (e.g., 'user', 'game', 'gameDetail')
      * @returns FlareBuilder instance
      */
     from<M extends ModelName>(modelName: M): FlareBuilder<M> {
-      const key = (modelName.charAt(0).toLowerCase() + modelName.slice(1)) as string;
-      const model = (this as any)[key] as ModelDelegate<M>;
+      const model = (this as any)[modelName] as ModelDelegate<M>;
       if (!model) {
-        throw new Error(`Model ${modelName} does not exist on PrismaClient.`);
+        throw new Error(`Model "${modelName}" does not exist on PrismaClient. Use lowercase model names (e.g., 'game', not 'Game').`);
       }
       return new FlareBuilder<M>(model);
     }
@@ -154,10 +153,9 @@ export function createFlareClient(
           get: (target, prop, receiver) => {
             if (prop === 'from') {
               return <M extends ModelName>(modelName: M) => {
-                const key = (modelName.charAt(0).toLowerCase() + modelName.slice(1)) as keyof typeof target;
-                const model = target[key] as ModelDelegate<M>;
+                const model = target[modelName as keyof typeof target] as ModelDelegate<M>;
                 if (!model) {
-                  throw new Error(`Model ${modelName} does not exist on TransactionClient.`);
+                  throw new Error(`Model "${modelName}" does not exist on TransactionClient. Use lowercase model names (e.g., 'game', not 'Game').`);
                 }
                 return new FlareBuilder<M>(model);
               };

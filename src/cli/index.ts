@@ -2,7 +2,7 @@
 import { generateQueries } from './generate-queries';
 import { generateCallbacksIndex } from './generate-callbacks';
 import { generateClient } from './generate-client';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -35,6 +35,9 @@ if (!command) {
 
 switch (command) {
   case 'generate':
+    // Run prisma generate first to ensure client is up-to-date
+    console.log('Running prisma generate...');
+    execSync('npx prisma generate', { stdio: 'inherit' });
     generateClient();
     generateQueries();
     generateCallbacksIndex();

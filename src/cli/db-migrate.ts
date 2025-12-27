@@ -14,11 +14,14 @@ function runMigrations(): void {
   }
 
   try {
-    console.log('🔄 Running Prisma migrations...');
+    const isDev = process.env.NODE_ENV !== 'production';
+    const migrateCommand = isDev ? 'migrate dev' : 'migrate deploy';
+
+    console.log(`🔄 Running Prisma migrations (${isDev ? 'development' : 'production'} mode)...`);
 
     const args = process.argv.slice(2).join(' ');
 
-    const command = `npx prisma migrate dev ${args} && npx prisma generate`;
+    const command = `npx prisma ${migrateCommand} ${args} && npx prisma generate`;
 
     console.log(`Running: ${command}`);
     execSync(command, {

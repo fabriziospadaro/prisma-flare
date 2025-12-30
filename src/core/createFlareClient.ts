@@ -1,5 +1,4 @@
 import type { PrismaClient } from '@prisma/client';
-import type { DriverAdapter } from '@prisma/client/runtime/library';
 import FlareBuilder from './flareBuilder';
 import { createHooksExtension, registerHooksLegacy, setPrismaNamespace } from './hookMiddleware';
 import type { ModelName, ModelDelegate } from '../types';
@@ -21,8 +20,9 @@ export interface FactoryFlareClientOptions {
   /**
    * Driver adapter for serverless/edge environments.
    * Pass an adapter instance (e.g., from @prisma/adapter-pg, @prisma/adapter-d1, etc.)
+   * Uses a flexible type to support different Prisma versions (5.x and 7.x have different adapter interfaces).
    */
-  adapter?: DriverAdapter;
+  adapter?: unknown;
 
   /**
    * Any additional PrismaClient options are passed through

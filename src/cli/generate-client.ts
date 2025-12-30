@@ -1,7 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { findProjectRoot, loadConfig } from './config';
-import { getPrismaClientPath, hasCustomPrismaOutput, getPrismaProvider } from './schema-parser';
+import {
+  getPrismaClientPath,
+  hasCustomPrismaOutput,
+  getPrismaProvider,
+  getRelationModelMap,
+} from './schema-parser';
 import { generateTypeHelpers, generateFlareBuilderInterface, generateFlareClientInterface } from './templates';
 
 /**
@@ -9,8 +14,9 @@ import { generateTypeHelpers, generateFlareBuilderInterface, generateFlareClient
  * This creates a TypeScript file alongside the Prisma client that gets compiled
  * with the user's code.
  */
-function generateNewProviderContent(): string {
-  const typeHelpers = generateTypeHelpers({ exportTypes: true });
+function generateNewProviderContent(rootDir: string): string {
+  const relationModelMap = getRelationModelMap(rootDir) || '// RelationModelMap not generated\ntype RelationModelMap = Record<string, Record<string, string>>;';
+  const typeHelpers = generateTypeHelpers({ exportTypes: true, relationModelMap });
   const flareBuilderInterface = generateFlareBuilderInterface({
     asInterface: true,
     name: 'IFlareBuilder',
@@ -81,7 +87,7 @@ function generateForNewProvider(rootDir: string, prismaClientPath: string): void
   }
 
   const flareFilePath = path.join(prismaClientPath, 'flare.ts');
-  const content = generateNewProviderContent();
+  const content = generateNewProviderContent(rootDir);
 
   fs.writeFileSync(flareFilePath, content);
 
@@ -96,14 +102,17 @@ function generateForNewProvider(rootDir: string, prismaClientPath: string): void
  * Generates complete type definitions for custom Prisma output paths.
  * This includes a fully typed FlareBuilder that uses the local Prisma namespace.
  *
+ * @param rootDir - The project root directory for schema parsing
  * @param resolvedImport - The resolved import path for the Prisma client
  * @param useFlareResult - Whether to use custom FlareResult types (for new provider)
  */
-function generateCustomOutputTypes(resolvedImport: string, useFlareResult = false): string {
+function generateCustomOutputTypes(rootDir: string, resolvedImport: string, useFlareResult = false): string {
+  const relationModelMap = getRelationModelMap(rootDir) || '// RelationModelMap not generated\ntype RelationModelMap = Record<string, Record<string, string>>;';
   const typeHelpers = generateTypeHelpers({
     prismaClientName: 'BasePrismaClient',
     prismaNamespace: 'BasePrisma',
     exportTypes: true,
+    relationModelMap,
   });
 
   const flareBuilderInterface = generateFlareBuilderInterface({
@@ -231,7 +240,7 @@ export const FlareBuilder = _FlareBuilder;
   // Use the same import path as the JS file for consistency
   // For new provider, use custom FlareResult types for proper include() type inference
   const dtsContent = isCustomOutput
-    ? generateCustomOutputTypes(resolvedImportForJs, isNewProvider)
+    ? generateCustomOutputTypes(rootDir, resolvedImportForJs, isNewProvider)
     : generateDefaultTypes(resolvedImport);
 
   // Write the files - always output .js since node_modules should contain compiled code

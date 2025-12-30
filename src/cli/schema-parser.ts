@@ -116,3 +116,147 @@ export function getPrismaProvider(rootDir: string): string {
 
   return config?.provider || 'prisma-client-js';
 }
+
+/**
+ * Represents a relation from one model to another.
+ */
+export interface ModelRelation {
+  /** The name of the relation field */
+  fieldName: string;
+  /** The target model name (PascalCase) */
+  targetModel: string;
+  /** Whether this is an array relation (has-many) */
+  isArray: boolean;
+}
+
+/**
+ * Parsed model information from the schema.
+ */
+export interface ParsedModel {
+  /** The model name (PascalCase) */
+  name: string;
+  /** Relations to other models */
+  relations: ModelRelation[];
+}
+
+/**
+ * Parses all models and their relations from a Prisma schema.
+ *
+ * @param schemaContent - The content of the schema.prisma file
+ * @returns Array of parsed models with their relations
+ */
+export function parseModelRelations(schemaContent: string): ParsedModel[] {
+  const models: ParsedModel[] = [];
+
+  // Match each model block
+  const modelRegex = /model\s+(\w+)\s*\{([^}]+)\}/g;
+  let modelMatch;
+
+  while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
+    const modelName = modelMatch[1];
+    const modelBody = modelMatch[2];
+    const relations: ModelRelation[] = [];
+
+    // Parse each line in the model body
+    const lines = modelBody.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      // Skip empty lines, comments, and index/unique declarations
+      if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('@@')) {
+        continue;
+      }
+
+      // Match relation fields:
+      // fieldName Type[] - array relation
+      // fieldName Type @relation(...) - single relation
+      // fieldName Type? @relation(...) - optional single relation
+      const relationMatch = trimmed.match(/^(\w+)\s+(\w+)(\[\])?\??(?:\s+@relation)?/);
+
+      if (relationMatch) {
+        const fieldName = relationMatch[1];
+        const fieldType = relationMatch[2];
+        const isArray = relationMatch[3] === '[]';
+
+        // Check if this is a relation field (type starts with uppercase and is not a scalar type)
+        const scalarTypes = [
+          'String',
+          'Int',
+          'Float',
+          'Boolean',
+          'DateTime',
+          'Json',
+          'Bytes',
+          'BigInt',
+          'Decimal',
+        ];
+
+        if (
+          fieldType[0] === fieldType[0].toUpperCase() &&
+          !scalarTypes.includes(fieldType) &&
+          !fieldName.startsWith('@@')
+        ) {
+          relations.push({
+            fieldName,
+            targetModel: fieldType,
+            isArray,
+          });
+        }
+      }
+    }
+
+    models.push({ name: modelName, relations });
+  }
+
+  return models;
+}
+
+/**
+ * Generates a RelationModelMap type string from parsed models.
+ * This maps each model's relation field names to their target model names (lowercase).
+ *
+ * @param models - Array of parsed models from parseModelRelations
+ * @returns TypeScript type definition string
+ */
+export function generateRelationModelMap(models: ParsedModel[]): string {
+  const entries = models.map((model) => {
+    const modelKey = model.name.charAt(0).toLowerCase() + model.name.slice(1);
+    const relationEntries = model.relations.map((rel) => {
+      const targetKey = rel.targetModel.charAt(0).toLowerCase() + rel.targetModel.slice(1);
+      return `    ${rel.fieldName}: '${targetKey}'`;
+    });
+
+    if (relationEntries.length === 0) {
+      return `  ${modelKey}: Record<string, never>`;
+    }
+
+    return `  ${modelKey}: {\n${relationEntries.join(',\n')}\n  }`;
+  });
+
+  return `/**
+ * Static mapping of model relations to their target model names.
+ * Generated from the Prisma schema during prisma-flare generate.
+ */
+type RelationModelMap = {
+${entries.join(',\n')}
+};`;
+}
+
+/**
+ * Gets the RelationModelMap type for a project.
+ *
+ * @param rootDir - The project root directory
+ * @returns The RelationModelMap type definition string, or null if schema not found
+ */
+export function getRelationModelMap(rootDir: string): string | null {
+  const schemaPath = path.join(rootDir, 'prisma', 'schema.prisma');
+
+  if (!fs.existsSync(schemaPath)) {
+    return null;
+  }
+
+  const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
+  const models = parseModelRelations(schemaContent);
+
+  return generateRelationModelMap(models);
+}

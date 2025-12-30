@@ -11,6 +11,8 @@ export interface TypeHelpersOptions {
   prismaNamespace?: string;
   /** Whether to export the types (true) or keep them local (false) */
   exportTypes?: boolean;
+  /** The generated RelationModelMap type definition string */
+  relationModelMap?: string;
 }
 
 /**
@@ -19,11 +21,10 @@ export interface TypeHelpersOptions {
 export function generateTypeHelpers(options: TypeHelpersOptions = {}): string {
   const {
     prismaClientName = 'PrismaClient',
-    // prismaNamespace is available for future use but types are extracted from PrismaClient directly
-    prismaNamespace: _prismaNamespace = 'Prisma',
+    prismaNamespace = 'Prisma',
     exportTypes = true,
+    relationModelMap = '// RelationModelMap not generated\ntype RelationModelMap = Record<string, Record<string, string>>;',
   } = options;
-  void _prismaNamespace; // Suppress unused warning - kept for API compatibility
 
   const exportKeyword = exportTypes ? 'export ' : '';
 
@@ -132,7 +133,7 @@ type IncludeKey<T extends ModelName> = keyof IncludeMap<T> & string;
  * We use a type-level helper that computes the result type with a specific include key.
  */
 type SingleIncludeResult<T extends ModelName, K extends IncludeKey<T>> =
-  Prisma.Result<ModelDelegate<T>, { include: { [P in K]: true } }, 'findFirst'>;
+  ${prismaNamespace}.Result<ModelDelegate<T>, { include: { [P in K]: true } }, 'findFirst'>;
 
 /**
  * Extract the relation type for a given model and relation key.
@@ -148,36 +149,48 @@ type RelationType<T extends ModelName, K extends string> =
     : never;
 
 /**
+ * Compute the relation type with optional nested includes.
+ * If NestedArgs has an include clause, we merge the base relation type
+ * with the included relations from that nested include.
+ */
+type RelationTypeWithNested<T extends ModelName, K extends string, NestedArgs = true> =
+  K extends IncludeKey<T>
+    ? K extends keyof NonNullable<SingleIncludeResult<T, K>>
+      ? NestedArgs extends { include: infer NestedInc }
+        ? RelationModelName<T, K> extends ModelName
+          ? NonNullable<SingleIncludeResult<T, K>>[K] extends (infer E)[]
+            ? (E & IncludedRelations<RelationModelName<T, K>, NestedInc>)[]
+            : NonNullable<SingleIncludeResult<T, K>>[K] & IncludedRelations<RelationModelName<T, K>, NestedInc>
+          : NonNullable<SingleIncludeResult<T, K>>[K]
+        : NonNullable<SingleIncludeResult<T, K>>[K]
+      : never
+    : never;
+
+/**
  * Compute included relations type from Args['include'].
  * For each key in include that is truthy, add the corresponding relation type.
+ * Supports nested includes by passing the full include value to RelationTypeWithNested.
  */
 type IncludedRelations<T extends ModelName, Inc> = Inc extends Record<string, any>
-  ? { [K in keyof Inc as Inc[K] extends false | undefined | null ? never : K]: RelationType<T, K & string> }
+  ? { [K in keyof Inc as Inc[K] extends false | undefined | null ? never : K]: RelationTypeWithNested<T, K & string, Inc[K]> }
   : {};
 
-/**
- * Extract the element type from an array, or the type itself if not an array.
- */
-type ElementType<T> = T extends (infer E)[] ? E : T;
-
-/**
- * Find the model name that matches a given record type.
- * Checks if R (relation type) has all scalar fields of RecordType<M>.
- * Uses Pick to compare only the scalar keys, avoiding mismatch from optional relations
- * that may be present in R but not in RecordType<M>.
- */
-type FindModelName<R, M extends ModelName = ModelName> = M extends any
-  ? R extends Pick<RecordType<M>, keyof RecordType<M>>
-    ? M
-    : never
-  : never;
+${relationModelMap}
 
 /**
  * Get the model name for a relation on model T with key K.
- * This extracts the related model name from the relation type.
+ * Uses the generated RelationModelMap for reliable model name lookup.
+ * Returns never for unknown keys (non-relations like _count), which disables
+ * callback typing for those keys without hardcoding specific names.
  */
 type RelationModelName<T extends ModelName, K extends IncludeKey<T>> =
-  FindModelName<ElementType<RelationType<T, K>>>;
+  T extends keyof RelationModelMap
+    ? K extends keyof RelationModelMap[T]
+      ? RelationModelMap[T][K] extends ModelName
+        ? RelationModelMap[T][K]
+        : never
+      : never
+    : never;
 
 /**
  * FlareResult - Custom result type that properly merges base entity with included relations.

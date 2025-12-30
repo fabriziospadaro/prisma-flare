@@ -983,6 +983,7 @@ export namespace Prisma {
     id: number | null
     email: string | null
     name: string | null
+    status: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -991,6 +992,7 @@ export namespace Prisma {
     id: number | null
     email: string | null
     name: string | null
+    status: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -999,6 +1001,7 @@ export namespace Prisma {
     id: number
     email: number
     name: number
+    status: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -1017,6 +1020,7 @@ export namespace Prisma {
     id?: true
     email?: true
     name?: true
+    status?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -1025,6 +1029,7 @@ export namespace Prisma {
     id?: true
     email?: true
     name?: true
+    status?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -1033,6 +1038,7 @@ export namespace Prisma {
     id?: true
     email?: true
     name?: true
+    status?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -1128,6 +1134,7 @@ export namespace Prisma {
     id: number
     email: string
     name: string | null
+    status: string
     createdAt: Date
     updatedAt: Date
     _count: UserCountAggregateOutputType | null
@@ -1155,6 +1162,7 @@ export namespace Prisma {
     id?: boolean
     email?: boolean
     name?: boolean
+    status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     posts?: boolean | User$postsArgs<ExtArgs>
@@ -1165,6 +1173,7 @@ export namespace Prisma {
     id?: boolean
     email?: boolean
     name?: boolean
+    status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["user"]>
@@ -1173,6 +1182,7 @@ export namespace Prisma {
     id?: boolean
     email?: boolean
     name?: boolean
+    status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -1192,6 +1202,7 @@ export namespace Prisma {
       id: number
       email: string
       name: string | null
+      status: string
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["user"]>
@@ -1591,6 +1602,7 @@ export namespace Prisma {
     readonly id: FieldRef<"User", 'Int'>
     readonly email: FieldRef<"User", 'String'>
     readonly name: FieldRef<"User", 'String'>
+    readonly status: FieldRef<"User", 'String'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
     readonly updatedAt: FieldRef<"User", 'DateTime'>
   }
@@ -1953,11 +1965,15 @@ export namespace Prisma {
 
   export type PostAvgAggregateOutputType = {
     id: number | null
+    views: number | null
+    likes: number | null
     authorId: number | null
   }
 
   export type PostSumAggregateOutputType = {
     id: number | null
+    views: number | null
+    likes: number | null
     authorId: number | null
   }
 
@@ -1966,6 +1982,8 @@ export namespace Prisma {
     title: string | null
     content: string | null
     published: boolean | null
+    views: number | null
+    likes: number | null
     authorId: number | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -1976,6 +1994,8 @@ export namespace Prisma {
     title: string | null
     content: string | null
     published: boolean | null
+    views: number | null
+    likes: number | null
     authorId: number | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -1986,6 +2006,8 @@ export namespace Prisma {
     title: number
     content: number
     published: number
+    views: number
+    likes: number
     authorId: number
     createdAt: number
     updatedAt: number
@@ -1995,11 +2017,15 @@ export namespace Prisma {
 
   export type PostAvgAggregateInputType = {
     id?: true
+    views?: true
+    likes?: true
     authorId?: true
   }
 
   export type PostSumAggregateInputType = {
     id?: true
+    views?: true
+    likes?: true
     authorId?: true
   }
 
@@ -2008,6 +2034,8 @@ export namespace Prisma {
     title?: true
     content?: true
     published?: true
+    views?: true
+    likes?: true
     authorId?: true
     createdAt?: true
     updatedAt?: true
@@ -2018,6 +2046,8 @@ export namespace Prisma {
     title?: true
     content?: true
     published?: true
+    views?: true
+    likes?: true
     authorId?: true
     createdAt?: true
     updatedAt?: true
@@ -2028,6 +2058,8 @@ export namespace Prisma {
     title?: true
     content?: true
     published?: true
+    views?: true
+    likes?: true
     authorId?: true
     createdAt?: true
     updatedAt?: true
@@ -2125,6 +2157,8 @@ export namespace Prisma {
     title: string
     content: string | null
     published: boolean
+    views: number
+    likes: number
     authorId: number
     createdAt: Date
     updatedAt: Date
@@ -2154,6 +2188,8 @@ export namespace Prisma {
     title?: boolean
     content?: boolean
     published?: boolean
+    views?: boolean
+    likes?: boolean
     authorId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -2165,6 +2201,8 @@ export namespace Prisma {
     title?: boolean
     content?: boolean
     published?: boolean
+    views?: boolean
+    likes?: boolean
     authorId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -2176,6 +2214,8 @@ export namespace Prisma {
     title?: boolean
     content?: boolean
     published?: boolean
+    views?: boolean
+    likes?: boolean
     authorId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -2198,6 +2238,8 @@ export namespace Prisma {
       title: string
       content: string | null
       published: boolean
+      views: number
+      likes: number
       authorId: number
       createdAt: Date
       updatedAt: Date
@@ -2599,6 +2641,8 @@ export namespace Prisma {
     readonly title: FieldRef<"Post", 'String'>
     readonly content: FieldRef<"Post", 'String'>
     readonly published: FieldRef<"Post", 'Boolean'>
+    readonly views: FieldRef<"Post", 'Int'>
+    readonly likes: FieldRef<"Post", 'Int'>
     readonly authorId: FieldRef<"Post", 'Int'>
     readonly createdAt: FieldRef<"Post", 'DateTime'>
     readonly updatedAt: FieldRef<"Post", 'DateTime'>
@@ -2947,6 +2991,7 @@ export namespace Prisma {
     id: 'id',
     email: 'email',
     name: 'name',
+    status: 'status',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -2959,6 +3004,8 @@ export namespace Prisma {
     title: 'title',
     content: 'content',
     published: 'published',
+    views: 'views',
+    likes: 'likes',
     authorId: 'authorId',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -3033,6 +3080,7 @@ export namespace Prisma {
     id?: IntFilter<"User"> | number
     email?: StringFilter<"User"> | string
     name?: StringNullableFilter<"User"> | string | null
+    status?: StringFilter<"User"> | string
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     posts?: PostListRelationFilter
@@ -3042,6 +3090,7 @@ export namespace Prisma {
     id?: SortOrder
     email?: SortOrder
     name?: SortOrderInput | SortOrder
+    status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     posts?: PostOrderByRelationAggregateInput
@@ -3054,6 +3103,7 @@ export namespace Prisma {
     OR?: UserWhereInput[]
     NOT?: UserWhereInput | UserWhereInput[]
     name?: StringNullableFilter<"User"> | string | null
+    status?: StringFilter<"User"> | string
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     posts?: PostListRelationFilter
@@ -3063,6 +3113,7 @@ export namespace Prisma {
     id?: SortOrder
     email?: SortOrder
     name?: SortOrderInput | SortOrder
+    status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserCountOrderByAggregateInput
@@ -3079,6 +3130,7 @@ export namespace Prisma {
     id?: IntWithAggregatesFilter<"User"> | number
     email?: StringWithAggregatesFilter<"User"> | string
     name?: StringNullableWithAggregatesFilter<"User"> | string | null
+    status?: StringWithAggregatesFilter<"User"> | string
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
   }
@@ -3091,6 +3143,8 @@ export namespace Prisma {
     title?: StringFilter<"Post"> | string
     content?: StringNullableFilter<"Post"> | string | null
     published?: BoolFilter<"Post"> | boolean
+    views?: IntFilter<"Post"> | number
+    likes?: IntFilter<"Post"> | number
     authorId?: IntFilter<"Post"> | number
     createdAt?: DateTimeFilter<"Post"> | Date | string
     updatedAt?: DateTimeFilter<"Post"> | Date | string
@@ -3102,6 +3156,8 @@ export namespace Prisma {
     title?: SortOrder
     content?: SortOrderInput | SortOrder
     published?: SortOrder
+    views?: SortOrder
+    likes?: SortOrder
     authorId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -3116,6 +3172,8 @@ export namespace Prisma {
     title?: StringFilter<"Post"> | string
     content?: StringNullableFilter<"Post"> | string | null
     published?: BoolFilter<"Post"> | boolean
+    views?: IntFilter<"Post"> | number
+    likes?: IntFilter<"Post"> | number
     authorId?: IntFilter<"Post"> | number
     createdAt?: DateTimeFilter<"Post"> | Date | string
     updatedAt?: DateTimeFilter<"Post"> | Date | string
@@ -3127,6 +3185,8 @@ export namespace Prisma {
     title?: SortOrder
     content?: SortOrderInput | SortOrder
     published?: SortOrder
+    views?: SortOrder
+    likes?: SortOrder
     authorId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -3145,6 +3205,8 @@ export namespace Prisma {
     title?: StringWithAggregatesFilter<"Post"> | string
     content?: StringNullableWithAggregatesFilter<"Post"> | string | null
     published?: BoolWithAggregatesFilter<"Post"> | boolean
+    views?: IntWithAggregatesFilter<"Post"> | number
+    likes?: IntWithAggregatesFilter<"Post"> | number
     authorId?: IntWithAggregatesFilter<"Post"> | number
     createdAt?: DateTimeWithAggregatesFilter<"Post"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Post"> | Date | string
@@ -3153,6 +3215,7 @@ export namespace Prisma {
   export type UserCreateInput = {
     email: string
     name?: string | null
+    status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
     posts?: PostCreateNestedManyWithoutAuthorInput
@@ -3162,6 +3225,7 @@ export namespace Prisma {
     id?: number
     email: string
     name?: string | null
+    status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
@@ -3170,6 +3234,7 @@ export namespace Prisma {
   export type UserUpdateInput = {
     email?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     posts?: PostUpdateManyWithoutAuthorNestedInput
@@ -3179,6 +3244,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     email?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
@@ -3188,6 +3254,7 @@ export namespace Prisma {
     id?: number
     email: string
     name?: string | null
+    status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3195,6 +3262,7 @@ export namespace Prisma {
   export type UserUpdateManyMutationInput = {
     email?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3203,6 +3271,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     email?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3211,6 +3280,8 @@ export namespace Prisma {
     title: string
     content?: string | null
     published?: boolean
+    views?: number
+    likes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     author: UserCreateNestedOneWithoutPostsInput
@@ -3221,6 +3292,8 @@ export namespace Prisma {
     title: string
     content?: string | null
     published?: boolean
+    views?: number
+    likes?: number
     authorId: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -3230,6 +3303,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     content?: NullableStringFieldUpdateOperationsInput | string | null
     published?: BoolFieldUpdateOperationsInput | boolean
+    views?: IntFieldUpdateOperationsInput | number
+    likes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     author?: UserUpdateOneRequiredWithoutPostsNestedInput
@@ -3240,6 +3315,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     content?: NullableStringFieldUpdateOperationsInput | string | null
     published?: BoolFieldUpdateOperationsInput | boolean
+    views?: IntFieldUpdateOperationsInput | number
+    likes?: IntFieldUpdateOperationsInput | number
     authorId?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -3250,6 +3327,8 @@ export namespace Prisma {
     title: string
     content?: string | null
     published?: boolean
+    views?: number
+    likes?: number
     authorId: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -3259,6 +3338,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     content?: NullableStringFieldUpdateOperationsInput | string | null
     published?: BoolFieldUpdateOperationsInput | boolean
+    views?: IntFieldUpdateOperationsInput | number
+    likes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3268,6 +3349,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     content?: NullableStringFieldUpdateOperationsInput | string | null
     published?: BoolFieldUpdateOperationsInput | boolean
+    views?: IntFieldUpdateOperationsInput | number
+    likes?: IntFieldUpdateOperationsInput | number
     authorId?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -3342,6 +3425,7 @@ export namespace Prisma {
     id?: SortOrder
     email?: SortOrder
     name?: SortOrder
+    status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -3354,6 +3438,7 @@ export namespace Prisma {
     id?: SortOrder
     email?: SortOrder
     name?: SortOrder
+    status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -3362,6 +3447,7 @@ export namespace Prisma {
     id?: SortOrder
     email?: SortOrder
     name?: SortOrder
+    status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -3449,6 +3535,8 @@ export namespace Prisma {
     title?: SortOrder
     content?: SortOrder
     published?: SortOrder
+    views?: SortOrder
+    likes?: SortOrder
     authorId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -3456,6 +3544,8 @@ export namespace Prisma {
 
   export type PostAvgOrderByAggregateInput = {
     id?: SortOrder
+    views?: SortOrder
+    likes?: SortOrder
     authorId?: SortOrder
   }
 
@@ -3464,6 +3554,8 @@ export namespace Prisma {
     title?: SortOrder
     content?: SortOrder
     published?: SortOrder
+    views?: SortOrder
+    likes?: SortOrder
     authorId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -3474,6 +3566,8 @@ export namespace Prisma {
     title?: SortOrder
     content?: SortOrder
     published?: SortOrder
+    views?: SortOrder
+    likes?: SortOrder
     authorId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -3481,6 +3575,8 @@ export namespace Prisma {
 
   export type PostSumOrderByAggregateInput = {
     id?: SortOrder
+    views?: SortOrder
+    likes?: SortOrder
     authorId?: SortOrder
   }
 
@@ -3725,6 +3821,8 @@ export namespace Prisma {
     title: string
     content?: string | null
     published?: boolean
+    views?: number
+    likes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3734,6 +3832,8 @@ export namespace Prisma {
     title: string
     content?: string | null
     published?: boolean
+    views?: number
+    likes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3771,6 +3871,8 @@ export namespace Prisma {
     title?: StringFilter<"Post"> | string
     content?: StringNullableFilter<"Post"> | string | null
     published?: BoolFilter<"Post"> | boolean
+    views?: IntFilter<"Post"> | number
+    likes?: IntFilter<"Post"> | number
     authorId?: IntFilter<"Post"> | number
     createdAt?: DateTimeFilter<"Post"> | Date | string
     updatedAt?: DateTimeFilter<"Post"> | Date | string
@@ -3779,6 +3881,7 @@ export namespace Prisma {
   export type UserCreateWithoutPostsInput = {
     email: string
     name?: string | null
+    status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3787,6 +3890,7 @@ export namespace Prisma {
     id?: number
     email: string
     name?: string | null
+    status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3810,6 +3914,7 @@ export namespace Prisma {
   export type UserUpdateWithoutPostsInput = {
     email?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3818,6 +3923,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     email?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3827,6 +3933,8 @@ export namespace Prisma {
     title: string
     content?: string | null
     published?: boolean
+    views?: number
+    likes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3835,6 +3943,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     content?: NullableStringFieldUpdateOperationsInput | string | null
     published?: BoolFieldUpdateOperationsInput | boolean
+    views?: IntFieldUpdateOperationsInput | number
+    likes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3844,6 +3954,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     content?: NullableStringFieldUpdateOperationsInput | string | null
     published?: BoolFieldUpdateOperationsInput | boolean
+    views?: IntFieldUpdateOperationsInput | number
+    likes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3853,6 +3965,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     content?: NullableStringFieldUpdateOperationsInput | string | null
     published?: BoolFieldUpdateOperationsInput | boolean
+    views?: IntFieldUpdateOperationsInput | number
+    likes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

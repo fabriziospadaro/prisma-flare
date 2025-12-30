@@ -49,22 +49,6 @@ function runSilent(command: string, cwd: string) {
   }
 }
 
-function emptyDirectory(dirPath: string) {
-  if (fs.existsSync(dirPath)) {
-    const files = fs.readdirSync(dirPath);
-    for (const file of files) {
-      const filePath = path.join(dirPath, file);
-      const stat = fs.statSync(filePath);
-      if (stat.isDirectory()) {
-        fs.rmSync(filePath, { recursive: true });
-      } else {
-        fs.unlinkSync(filePath);
-      }
-    }
-    console.log(`  Emptied: ${dirPath}`);
-  }
-}
-
 function setupProject(key: keyof typeof PROJECT_CONFIG) {
   const config = PROJECT_CONFIG[key];
   const testProjectDir = path.join(rootDir, 'tests', config.folder);
@@ -94,14 +78,8 @@ function setupProject(key: keyof typeof PROJECT_CONFIG) {
   console.log(`  Installing ${tgzFile}...`);
   runSilent(`npm install --no-save ${tgzPath}`, testProjectDir);
 
-  // For custom output projects, empty models folder
-  if (config.needsDbPush) {
-    const modelsPath = path.join(testProjectDir, 'prisma', 'models');
-    if (fs.existsSync(modelsPath)) {
-      console.log('  Emptying models folder...');
-      emptyDirectory(modelsPath);
-    }
-  }
+  // Note: We don't empty the models folder anymore.
+  // The generate command skips existing model files, preserving custom methods.
 
   console.log('  Generating Prisma Flare...');
   try {

@@ -6,9 +6,8 @@
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
-    "outDir": "dist",
-    "declaration": true
+    "noEmit": true
   },
-  "include": ["prisma/**/*.ts", "tests/**/*.ts"],
+  "include": ["prisma/**/*.ts", "adapter.ts"],
   "exclude": ["node_modules"]
 }

@@ -294,6 +294,13 @@ export function generateFlareBuilderInterface(options: FlareBuilderInterfaceOpti
 
   const constructorLine = !asInterface && constructorSignature ? `  constructor${constructorSignature};\n\n` : '';
 
+  // Protected members for subclasses to access
+  const protectedMembers = !asInterface ? `  // Protected members for subclassing
+  protected model: ModelDelegate<T>;
+  protected query: Record<string, any>;
+
+` : '';
+
   return `
 // ============================================================================
 // FlareBuilder - Complete type definition using YOUR Prisma types
@@ -304,7 +311,7 @@ export function generateFlareBuilderInterface(options: FlareBuilderInterfaceOpti
  * This version uses your project's Prisma types for complete autocomplete support.
  */
 ${exportKeyword}${keyword} ${name}${generics} {
-${constructorLine}  // Query Building Methods - Where conditions
+${constructorLine}${protectedMembers}  // Query Building Methods - Where conditions
 ${methods
   .filter((m) => FLARE_BUILDER_METHODS.whereConditions.some((wc) => wc.name === m.name))
   .map(formatMethod)

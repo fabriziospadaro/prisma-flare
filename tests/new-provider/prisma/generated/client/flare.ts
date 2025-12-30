@@ -105,6 +105,50 @@ type MaxFields<T extends ModelName> = AggregateArgs<T> extends { _max?: infer M 
 type IncludeMap<T extends ModelName> = NonNullable<IncludeInput<T>>;
 type IncludeKey<T extends ModelName> = keyof IncludeMap<T> & string;
 
+/**
+ * Extract the relation type for a given model and relation key.
+ * This uses RecordType to get the full type including relations, then picks the relation.
+ */
+type RelationType<T extends ModelName, K extends string> =
+  K extends keyof RecordType<T> ? RecordType<T>[K] : never;
+
+/**
+ * Compute included relations type from Args['include'].
+ * For each key in include that is truthy, add the corresponding relation type.
+ */
+type IncludedRelations<T extends ModelName, Inc> = Inc extends Record<string, any>
+  ? { [K in keyof Inc as Inc[K] extends false | undefined | null ? never : K]: RelationType<T, K & string> }
+  : {};
+
+/**
+ * FlareResult - Custom result type that properly merges base entity with included relations.
+ * This fixes the issue where Prisma.Result doesn't work correctly with generic types
+ * in the new prisma-client provider.
+ *
+ * @typeParam T - The model name
+ * @typeParam Args - The query args (may contain include, select, etc.)
+ * @typeParam _Op - The operation type (findFirst, findMany, etc.) - used for nullability
+ */
+type FlareResult<T extends ModelName, Args, _Op extends string> =
+  Args extends { include: infer Inc }
+    ? RecordType<T> & IncludedRelations<T, Inc>
+    : RecordType<T>;
+
+/**
+ * FlareResultMany - Result type for findMany operations (always returns array)
+ */
+type FlareResultMany<T extends ModelName, Args> = FlareResult<T, Args, 'findMany'>[];
+
+/**
+ * FlareResultNullable - Result type for operations that may return null (findFirst, findUnique)
+ */
+type FlareResultNullable<T extends ModelName, Args> = FlareResult<T, Args, 'findFirst'> | null;
+
+/**
+ * FlareResultRequired - Result type for operations that always return a value (findFirstOrThrow, etc.)
+ */
+type FlareResultRequired<T extends ModelName, Args> = FlareResult<T, Args, 'findFirstOrThrow'>;
+
 // ============================================================================
 // FlareBuilder - Complete type definition using YOUR Prisma types
 // ============================================================================
@@ -135,11 +179,11 @@ export interface IFlareBuilder<T extends ModelName, Args extends Record<string, 
   include<K extends IncludeKey<T>>(relation: K, callback?: (builder: any) => any): FlareBuilder<T, Args & { include: Record<K, true> }>;
 
   // Read Operations
-  findMany(): Promise<Prisma.Result<ModelDelegate<T>, Args, 'findMany'>>;
-  findFirst(): Promise<Prisma.Result<ModelDelegate<T>, Args, 'findFirst'>>;
-  findFirstOrThrow(): Promise<Prisma.Result<ModelDelegate<T>, Args, 'findFirstOrThrow'>>;
-  findUnique(): Promise<Prisma.Result<ModelDelegate<T>, Args, 'findUnique'>>;
-  findUniqueOrThrow(): Promise<Prisma.Result<ModelDelegate<T>, Args, 'findUniqueOrThrow'>>;
+  findMany(): Promise<FlareResultMany<T, Args>>;
+  findFirst(): Promise<FlareResultNullable<T, Args>>;
+  findFirstOrThrow(): Promise<FlareResultRequired<T, Args>>;
+  findUnique(): Promise<FlareResultNullable<T, Args>>;
+  findUniqueOrThrow(): Promise<FlareResultRequired<T, Args>>;
   pluck<K extends keyof RecordType<T>>(field: K): Promise<Array<RecordType<T>[K]>>;
   only<K extends keyof RecordType<T>>(field: K): Promise<RecordType<T>[K] | null>;
 

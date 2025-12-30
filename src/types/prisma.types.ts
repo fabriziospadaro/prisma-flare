@@ -214,10 +214,11 @@ export type BeforeHookCallback<_T extends ModelName = ModelName> = (
 
 /**
  * Callback function for after hooks
+ * The result parameter is strongly typed to the model's record type
  */
-export type AfterHookCallback<_T extends ModelName = ModelName> = (
+export type AfterHookCallback<T extends ModelName = ModelName> = (
   args: any,
-  result: any,
+  result: RecordType<T>,
   prisma: PrismaClient
 ) => Promise<void> | void;
 

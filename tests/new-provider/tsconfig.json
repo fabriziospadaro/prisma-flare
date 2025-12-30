@@ -6,7 +6,11 @@
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "prisma-flare-generated": ["./node_modules/prisma-flare-generated"]
+    }
   },
   "include": ["prisma/**/*.ts", "adapter.ts", "generated-exports.ts"],
   "exclude": ["node_modules"]

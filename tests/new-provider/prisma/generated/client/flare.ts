@@ -106,11 +106,24 @@ type IncludeMap<T extends ModelName> = NonNullable<IncludeInput<T>>;
 type IncludeKey<T extends ModelName> = keyof IncludeMap<T> & string;
 
 /**
+ * Helper to extract a single relation type by using Prisma.Result with a concrete include.
+ * We use a type-level helper that computes the result type with a specific include key.
+ */
+type SingleIncludeResult<T extends ModelName, K extends IncludeKey<T>> =
+  Prisma.Result<ModelDelegate<T>, { include: { [P in K]: true } }, 'findFirst'>;
+
+/**
  * Extract the relation type for a given model and relation key.
- * This uses RecordType to get the full type including relations, then picks the relation.
+ * Uses Prisma.Result with a synthetic include to get the correct relation type.
+ * This works around the issue where RecordType<T> doesn't include relation fields
+ * in the new prisma-client provider.
  */
 type RelationType<T extends ModelName, K extends string> =
-  K extends keyof RecordType<T> ? RecordType<T>[K] : never;
+  K extends IncludeKey<T>
+    ? K extends keyof NonNullable<SingleIncludeResult<T, K>>
+      ? NonNullable<SingleIncludeResult<T, K>>[K]
+      : never
+    : never;
 
 /**
  * Compute included relations type from Args['include'].

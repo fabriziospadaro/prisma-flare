@@ -5,7 +5,7 @@
  * These tests verify that generated types are correct across all Prisma configurations.
  */
 
-import { describe, it, expectTypeOf } from 'vitest';
+import { describe, it, expectTypeOf, beforeEach, afterAll } from 'vitest';
 import { DB } from 'prisma-flare/generated';
 import {
   beforeCreate,
@@ -16,6 +16,7 @@ import {
   afterDelete,
   afterChange,
 } from 'prisma-flare';
+import { cleanDatabase, disconnect, resetCounter, uniqueEmail } from '#test-helpers';
 
 // ==================== MODEL TYPES ====================
 interface ExpectedUser {
@@ -40,6 +41,15 @@ interface ExpectedPost {
 }
 
 describe('Type Safety', () => {
+  beforeEach(async () => {
+    await cleanDatabase();
+    resetCounter();
+  });
+
+  afterAll(async () => {
+    await disconnect();
+  });
+
   // ==================== DB STATIC PROPERTIES ====================
   describe('DB Static Access', () => {
     it('DB has model properties', () => {
@@ -355,7 +365,7 @@ describe('Type Safety', () => {
   describe('FlareBuilder Write Operations', () => {
     describe('create()', () => {
       it('returns created record', async () => {
-        const user = await DB.users.create({ email: 'type@test.com' });
+        const user = await DB.users.create({ email: uniqueEmail() });
 
         expectTypeOf(user.id).toBeNumber();
         expectTypeOf(user.email).toBeString();
@@ -367,7 +377,7 @@ describe('Type Safety', () => {
 
       it('accepts optional fields', async () => {
         const user = await DB.users.create({
-          email: 'test@test.com',
+          email: uniqueEmail(),
           name: 'Test User',
           status: 'active',
         });
@@ -378,8 +388,8 @@ describe('Type Safety', () => {
     describe('createMany()', () => {
       it('returns batch payload', async () => {
         const result = await DB.users.createMany([
-          { email: 'one@test.com' },
-          { email: 'two@test.com' },
+          { email: uniqueEmail() },
+          { email: uniqueEmail() },
         ]);
         expectTypeOf(result.count).toBeNumber();
       });
@@ -387,13 +397,15 @@ describe('Type Safety', () => {
 
     describe('update()', () => {
       it('returns updated record', async () => {
-        const user = await DB.users.withId(1).update({ name: 'Updated' });
+        const created = await DB.users.create({ email: uniqueEmail() });
+        const user = await DB.users.withId(created.id).update({ name: 'Updated' });
         expectTypeOf(user.id).toBeNumber();
         expectTypeOf(user.name).toEqualTypeOf<string | null>();
       });
 
       it('accepts partial data', async () => {
-        const user = await DB.users.withId(1).update({ status: 'inactive' });
+        const created = await DB.users.create({ email: uniqueEmail() });
+        const user = await DB.users.withId(created.id).update({ status: 'inactive' });
         expectTypeOf(user.status).toBeString();
       });
     });
@@ -407,7 +419,8 @@ describe('Type Safety', () => {
 
     describe('delete()', () => {
       it('returns deleted record', async () => {
-        const user = await DB.users.withId(1).delete();
+        const created = await DB.users.create({ email: uniqueEmail() });
+        const user = await DB.users.withId(created.id).delete();
         expectTypeOf(user.id).toBeNumber();
       });
     });
@@ -422,9 +435,9 @@ describe('Type Safety', () => {
     describe('upsert()', () => {
       it('returns upserted record', async () => {
         const user = await DB.users.upsert({
-          where: { id: 1 },
+          where: { id: 999999 },
           update: { name: 'Updated' },
-          create: { email: 'new@test.com' },
+          create: { email: uniqueEmail() },
         });
         expectTypeOf(user.id).toBeNumber();
       });

@@ -156,6 +156,30 @@ type IncludedRelations<T extends ModelName, Inc> = Inc extends Record<string, an
   : {};
 
 /**
+ * Extract the element type from an array, or the type itself if not an array.
+ */
+type ElementType<T> = T extends (infer E)[] ? E : T;
+
+/**
+ * Find the model name that matches a given record type.
+ * Iterates through all model names and returns the one whose RecordType matches.
+ */
+type FindModelName<R, M extends ModelName = ModelName> = M extends any
+  ? RecordType<M> extends R
+    ? R extends RecordType<M>
+      ? M
+      : never
+    : never
+  : never;
+
+/**
+ * Get the model name for a relation on model T with key K.
+ * This extracts the related model name from the relation type.
+ */
+type RelationModelName<T extends ModelName, K extends IncludeKey<T>> =
+  FindModelName<ElementType<RelationType<T, K>>>;
+
+/**
  * FlareResult - Custom result type that properly merges base entity with included relations.
  * This fixes the issue where Prisma.Result doesn't work correctly with generic types
  * in the new prisma-client provider.

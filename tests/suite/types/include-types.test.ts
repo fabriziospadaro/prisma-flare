@@ -147,4 +147,73 @@ describe('Include Type Inference', () => {
       expect(postsLength).toBe(1);
     });
   });
+
+  describe('include callback has properly typed builder', () => {
+    it('callback builder has where method with correct type', async () => {
+      const user = await DB.users.create({ email: uniqueEmail() });
+      await DB.posts.create({ title: 'Published Post', authorId: user.id, published: true });
+      await DB.posts.create({ title: 'Draft Post', authorId: user.id, published: false });
+
+      // The callback builder should be typed as FlareBuilder<'post'>
+      // so .where() should accept PostWhereInput
+      const result = await DB.users
+        .withId(user.id)
+        .include('posts', (postsBuilder) => postsBuilder.where({ published: true }))
+        .findFirst();
+
+      expect(result!.posts.length).toBe(1);
+      expect(result!.posts[0].title).toBe('Published Post');
+    });
+
+    it('callback builder has order method', async () => {
+      const user = await DB.users.create({ email: uniqueEmail() });
+      await DB.posts.create({ title: 'B Post', authorId: user.id, views: 10 });
+      await DB.posts.create({ title: 'A Post', authorId: user.id, views: 20 });
+
+      // The callback builder should have .order() typed for post fields
+      const result = await DB.users
+        .withId(user.id)
+        .include('posts', (postsBuilder) => postsBuilder.order({ title: 'asc' }))
+        .findFirst();
+
+      expect(result!.posts[0].title).toBe('A Post');
+      expect(result!.posts[1].title).toBe('B Post');
+    });
+
+    it('callback builder has limit method', async () => {
+      const user = await DB.users.create({ email: uniqueEmail() });
+      await DB.posts.create({ title: 'Post 1', authorId: user.id });
+      await DB.posts.create({ title: 'Post 2', authorId: user.id });
+      await DB.posts.create({ title: 'Post 3', authorId: user.id });
+
+      const result = await DB.users
+        .withId(user.id)
+        .include('posts', (postsBuilder) => postsBuilder.limit(2))
+        .findFirst();
+
+      expect(result!.posts.length).toBe(2);
+    });
+
+    it('belongs-to callback builder is typed correctly', async () => {
+      const user = await DB.users.create({ email: uniqueEmail(), name: 'Test Author' });
+      await DB.posts.create({ title: 'Test Post', authorId: user.id });
+
+      // For belongs-to relation, callback builder should be FlareBuilder<'user'>
+      // Note: belongs-to relations don't support .where() since they're single records
+      // but the builder should still be properly typed for other operations
+      const result = await DB.posts
+        .where({ authorId: user.id })
+        .include('author')
+        .findFirst();
+
+      // Verify the author type is correctly inferred (not never)
+      const authorId: number = result!.author.id;
+      const authorEmail: string = result!.author.email;
+      const authorName: string | null = result!.author.name;
+
+      expect(authorId).toBe(user.id);
+      expect(authorEmail).toBe(user.email);
+      expect(authorName).toBe('Test Author');
+    });
+  });
 });

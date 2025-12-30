@@ -84,7 +84,7 @@ export const FLARE_BUILDER_METHODS = {
     {
       name: 'include',
       signature:
-        '<K extends IncludeKey<T>>(relation: K, callback?: (builder: any) => any): FlareBuilder<T, Args & { include: Record<K, true> }>',
+        '<K extends IncludeKey<T>>(relation: K, callback?: (builder: FlareBuilder<RelationModelName<T, K>, Record<string, never>>) => FlareBuilder<RelationModelName<T, K>, any>): FlareBuilder<T, Args & { include: Record<K, true> }>',
     },
   ],
   readOperations: [

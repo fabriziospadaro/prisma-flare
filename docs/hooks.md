@@ -116,6 +116,49 @@ afterChange('order', 'status', async (oldValue, newValue, record) => {
 });
 ```
 
+### Including Additional Fields
+
+By default, column hooks only fetch the watched column and `id` for performance. If your callback needs access to other fields, use the `includeFields` option:
+
+```typescript
+import { afterChange } from 'prisma-flare';
+
+// Without includeFields: record only has { id, status }
+// With includeFields: record also has { email, name }
+afterChange('user', 'status', async (oldValue, newValue, record) => {
+  if (newValue === 'active') {
+    // record.email and record.name are now available
+    await sendActivationEmail(record.email, record.name);
+  }
+}, {
+  includeFields: ['email', 'name']
+});
+```
+
+This is useful when:
+- Your callback needs to access related fields (e.g., foreign keys for lookups)
+- You want to include computed or timestamp fields
+- You need context beyond just the changed value
+
+Multiple hooks on the same model will have their `includeFields` merged, so all hooks benefit from any additional fields requested.
+
+### Type Safety
+
+The `afterChange` function is fully typed - you get autocomplete for:
+- **Model name** (first parameter)
+- **Column name** (second parameter) - only valid fields for that model
+- **includeFields** option - only valid fields for that model
+
+```typescript
+// ✅ TypeScript autocompletes valid fields
+afterChange('user', 'status', callback, {
+  includeFields: ['email', 'name']
+});
+
+// ❌ TypeScript error: 'invalidField' doesn't exist on User
+afterChange('user', 'invalidField', callback);
+```
+
 ### Smart Value Comparison
 
 Column hooks use intelligent comparison to detect real changes:

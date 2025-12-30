@@ -222,6 +222,13 @@ export type AfterHookCallback<_T extends ModelName = ModelName> = (
 ) => Promise<void> | void;
 
 /**
+ * Extract field names from a model's record type
+ */
+export type FieldName<T extends ModelName> = string extends T
+  ? string
+  : keyof NonNullable<RecordType<T>> & string;
+
+/**
  * Callback function for column change hooks
  */
 export type ColumnChangeCallback<T extends ModelName = ModelName> = (
@@ -230,6 +237,24 @@ export type ColumnChangeCallback<T extends ModelName = ModelName> = (
   record: NonNullable<RecordType<T>>,
   prisma: PrismaClient
 ) => Promise<void> | void;
+
+/**
+ * Options for column change hooks (afterChange)
+ */
+export interface ColumnChangeOptions<T extends ModelName = ModelName> {
+  /**
+   * Additional fields to include when fetching records for this hook.
+   * By default, only the watched column and 'id' are fetched.
+   * Use this when your callback needs access to other fields.
+   *
+   * @example
+   * // Include authorId and categoryId in the record
+   * afterChange('post', 'status', callback, {
+   *   includeFields: ['authorId', 'categoryId']
+   * });
+   */
+  includeFields?: FieldName<T>[];
+}
 
 /**
  * Query builder aggregation result types

@@ -1,9 +1,11 @@
 import hookRegistry from './hookRegistry';
-import type { 
+import type {
   ModelName,
   BeforeHookCallback,
   AfterHookCallback,
-  ColumnChangeCallback
+  ColumnChangeCallback,
+  ColumnChangeOptions,
+  FieldName
 } from '../types';
 
 function normalizeModelName<T extends ModelName>(model: T): ModelName {
@@ -54,10 +56,11 @@ export function afterUpdate<T extends ModelName>(
 
 export function afterChange<T extends ModelName>(
   model: T,
-  column: string,
-  callback: ColumnChangeCallback<T>
+  column: FieldName<T>,
+  callback: ColumnChangeCallback<T>,
+  options?: ColumnChangeOptions<T>
 ): void {
-  hookRegistry.addColumnHook(normalizeModelName(model), column, callback);
+  hookRegistry.addColumnHook(normalizeModelName(model), column, callback, options);
 }
 
 export function afterUpsert<T extends ModelName>(

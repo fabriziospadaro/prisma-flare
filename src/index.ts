@@ -34,6 +34,7 @@ export type {
   ModelName,
   ModelDelegate,
   RecordType,
+  FieldName,
   FindManyArgs,
   FindFirstArgs,
   CreateArgs,
@@ -48,6 +49,7 @@ export type {
   BeforeHookCallback,
   AfterHookCallback,
   ColumnChangeCallback,
+  ColumnChangeOptions,
   AggregateResult,
   PaginatedResult
 } from './types';

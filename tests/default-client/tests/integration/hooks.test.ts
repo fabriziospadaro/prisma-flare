@@ -458,6 +458,167 @@ describe('Hooks System', () => {
         expect.anything()
       );
     });
+
+    describe('includeFields option', () => {
+      it('should include specified fields in the record', async () => {
+        const callback = vi.fn();
+        // By default, only 'status' and 'id' would be fetched
+        // With includeFields, we also get 'email' and 'name'
+        afterChange('user', 'status', callback, {
+          includeFields: ['email', 'name'],
+        });
+
+        const user = await createUser({
+          email: 'include@test.com',
+          name: 'Test User',
+          status: 'pending',
+        });
+        await DB.users.withId(user.id).update({ status: 'active' });
+
+        expect(callback).toHaveBeenCalledTimes(1);
+        const [, , record] = callback.mock.calls[0];
+        expect(record.id).toBe(user.id);
+        expect(record.status).toBe('active');
+        expect(record.email).toBe('include@test.com');
+        expect(record.name).toBe('Test User');
+      });
+
+      it('should work with multiple hooks on same column with different includeFields', async () => {
+        const callback1 = vi.fn();
+        const callback2 = vi.fn();
+
+        // First hook needs email
+        afterChange('user', 'status', callback1, {
+          includeFields: ['email'],
+        });
+
+        // Second hook needs name
+        afterChange('user', 'status', callback2, {
+          includeFields: ['name'],
+        });
+
+        const user = await createUser({
+          email: 'multi@test.com',
+          name: 'Multi User',
+          status: 'pending',
+        });
+        await DB.users.withId(user.id).update({ status: 'active' });
+
+        // Both callbacks should have access to all fields (union of includeFields)
+        expect(callback1).toHaveBeenCalledTimes(1);
+        expect(callback2).toHaveBeenCalledTimes(1);
+
+        const [, , record1] = callback1.mock.calls[0];
+        const [, , record2] = callback2.mock.calls[0];
+
+        // Both should have email and name since fields are merged
+        expect(record1.email).toBe('multi@test.com');
+        expect(record1.name).toBe('Multi User');
+        expect(record2.email).toBe('multi@test.com');
+        expect(record2.name).toBe('Multi User');
+      });
+
+      it('should work with hooks on different columns with includeFields', async () => {
+        const statusCallback = vi.fn();
+        const nameCallback = vi.fn();
+
+        afterChange('user', 'status', statusCallback, {
+          includeFields: ['email'],
+        });
+
+        afterChange('user', 'name', nameCallback, {
+          includeFields: ['status'],
+        });
+
+        const user = await createUser({
+          email: 'diff@test.com',
+          name: 'Original',
+          status: 'pending',
+        });
+
+        // Update both status and name
+        await DB.users.withId(user.id).update({
+          status: 'active',
+          name: 'Updated',
+        });
+
+        expect(statusCallback).toHaveBeenCalledTimes(1);
+        expect(nameCallback).toHaveBeenCalledTimes(1);
+
+        const [, , statusRecord] = statusCallback.mock.calls[0];
+        const [, , nameRecord] = nameCallback.mock.calls[0];
+
+        // Both hooks should have access to all the included fields
+        expect(statusRecord.email).toBe('diff@test.com');
+        expect(nameRecord.status).toBe('active');
+      });
+
+      it('should work without includeFields (backwards compatible)', async () => {
+        const callback = vi.fn();
+        // No includeFields option - should still work as before
+        afterChange('user', 'status', callback);
+
+        const user = await createUser({ status: 'pending' });
+        await DB.users.withId(user.id).update({ status: 'active' });
+
+        expect(callback).toHaveBeenCalledTimes(1);
+        const [oldVal, newVal, record] = callback.mock.calls[0];
+        expect(oldVal).toBe('pending');
+        expect(newVal).toBe('active');
+        expect(record.id).toBe(user.id);
+        expect(record.status).toBe('active');
+      });
+
+      it('should handle empty includeFields array', async () => {
+        const callback = vi.fn();
+        afterChange('user', 'status', callback, {
+          includeFields: [],
+        });
+
+        const user = await createUser({ status: 'pending' });
+        await DB.users.withId(user.id).update({ status: 'active' });
+
+        expect(callback).toHaveBeenCalledTimes(1);
+        const [, , record] = callback.mock.calls[0];
+        expect(record.id).toBe(user.id);
+        expect(record.status).toBe('active');
+      });
+
+      it('should work with updateMany and includeFields', async () => {
+        const callback = vi.fn();
+        afterChange('user', 'status', callback, {
+          includeFields: ['email'],
+        });
+
+        await DB.users.createMany([
+          { email: 'batch1@test.com', status: 'pending' },
+          { email: 'batch2@test.com', status: 'pending' },
+        ]);
+
+        await DB.users.where({ status: 'pending' }).updateMany({ status: 'active' });
+
+        expect(callback).toHaveBeenCalledTimes(2);
+
+        // Check both calls have email field
+        const emails = callback.mock.calls.map((call: any[]) => call[2].email).sort();
+        expect(emails).toEqual(['batch1@test.com', 'batch2@test.com']);
+      });
+
+      it('should include fields even when they are not being updated', async () => {
+        const callback = vi.fn();
+        afterChange('user', 'status', callback, {
+          includeFields: ['createdAt'],
+        });
+
+        const user = await createUser({ status: 'pending' });
+        await DB.users.withId(user.id).update({ status: 'active' });
+
+        expect(callback).toHaveBeenCalledTimes(1);
+        const [, , record] = callback.mock.calls[0];
+        expect(record.createdAt).toBeDefined();
+        expect(record.createdAt).toBeInstanceOf(Date);
+      });
+    });
   });
 
   /**

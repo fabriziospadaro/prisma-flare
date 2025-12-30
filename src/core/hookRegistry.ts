@@ -4,6 +4,7 @@ import type {
   BeforeHookCallback,
   AfterHookCallback,
   ColumnChangeCallback,
+  ColumnChangeOptions,
   ModelName
 } from '../types';
 
@@ -87,6 +88,14 @@ const DEFAULT_CONFIG: HookConfig = {
   warnOnSkip: true,
 };
 
+/**
+ * Internal type for storing column hook with its options
+ */
+interface ColumnHookEntry {
+  callback: ColumnChangeCallback<any>;
+  options?: ColumnChangeOptions<any>;
+}
+
 class HookRegistry {
   private hooks: {
     before: Record<string, BeforeHookCallback[]>;
@@ -94,7 +103,7 @@ class HookRegistry {
   };
 
   private columnHooks: {
-    afterChange: Record<string, ColumnChangeCallback<any>[]>;
+    afterChange: Record<string, ColumnHookEntry[]>;
   };
 
   private fieldCache: Record<string, Record<string, true>>;
@@ -154,13 +163,20 @@ class HookRegistry {
     this.hooks[timing][key].push(fn as any);
   }
 
-  addColumnHook(model: ModelName, column: string, fn: ColumnChangeCallback<any>): void {
+  addColumnHook(
+    model: ModelName,
+    column: string,
+    fn: ColumnChangeCallback<any>,
+    options?: ColumnChangeOptions<any>
+  ): void {
     const key = `${model}:${column}`;
     if (!this.columnHooks.afterChange[key]) {
       this.columnHooks.afterChange[key] = [];
     }
-    this.columnHooks.afterChange[key].push(fn);
+    this.columnHooks.afterChange[key].push({ callback: fn, options });
     this.modelsWithColumnHooks.add(model);
+    // Clear the field cache for this model since includeFields may have changed
+    delete this.fieldCache[model];
   }
 
   async runHooks(
@@ -186,11 +202,11 @@ class HookRegistry {
     const promises: Promise<void>[] = [];
     for (const column in newData) {
       const key = `${model}:${column}`;
-      const hooks = this.columnHooks.afterChange[key];
+      const entries = this.columnHooks.afterChange[key];
 
-      if (hooks && !valuesEqual(newData[column], prevData[column])) {
-        for (const hook of hooks) {
-          promises.push(hook(prevData[column], newData[column], newData, prisma) as Promise<void>);
+      if (entries && !valuesEqual(newData[column], prevData[column])) {
+        for (const entry of entries) {
+          promises.push(entry.callback(prevData[column], newData[column], newData, prisma) as Promise<void>);
         }
       }
     }
@@ -249,6 +265,16 @@ class HookRegistry {
       if (key.startsWith(`${model}:`)) {
         const [, column] = key.split(':');
         fields.add(column);
+
+        // Add any includeFields from the hook options
+        const entries = this.columnHooks.afterChange[key];
+        for (const entry of entries) {
+          if (entry.options?.includeFields) {
+            for (const field of entry.options.includeFields) {
+              fields.add(field);
+            }
+          }
+        }
       }
     }
 

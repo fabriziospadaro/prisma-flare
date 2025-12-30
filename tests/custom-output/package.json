@@ -8,8 +8,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@prisma/client": "^5.10.0",
-    "prisma-flare": "file:../../prisma-flare-1.1.2.tgz"
+    "@prisma/client": "^5.10.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",

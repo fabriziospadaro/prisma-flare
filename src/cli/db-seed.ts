@@ -1,18 +1,7 @@
 #!/usr/bin/env node
-/**
- * Database seeding utility
- * Runs the Prisma seed script defined in package.json
- */
 
 import { execSync } from 'child_process';
-import * as dotenv from 'dotenv';
 
-// Load environment variables
-dotenv.config();
-
-/**
- * Run database seed
- */
 function seedDatabase(): void {
   const databaseUrl = process.env.DATABASE_URL;
 
@@ -24,7 +13,6 @@ function seedDatabase(): void {
   try {
     console.log('🔄 Seeding database...');
 
-    // Run prisma db seed
     execSync('npx prisma db seed', {
       stdio: 'inherit',
       env: process.env,
@@ -38,5 +26,4 @@ function seedDatabase(): void {
   }
 }
 
-// Run the script
 seedDatabase();

@@ -1,29 +1,35 @@
 {
-  "name": "prismaroids",
-  "version": "1.0.0",
+  "name": "prisma-flare",
+  "version": "1.1.2",
   "description": "Prisma utilities package with callback system and query builder for chained operations",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsup",
+    "prepare": "npm run build",
+    "dev": "tsup --watch",
     "clean": "rm -rf dist",
+    "check": "tsc --noEmit -p tsconfig.test.json",
+    "check:tests": "cd tests/default-client && npx tsc --noEmit; cd ../custom-output && npx tsc --noEmit; cd ../new-provider && npx tsc --noEmit",
+    "check:all": "npm run check && npm run check:tests",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "prepublishOnly": "npm run clean && npm run build",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "tsx scripts/setup-tests.ts all && cd tests/default-client && npm test && cd ../custom-output && npm test",
+    "test:default": "tsx scripts/setup-tests.ts default && cd tests/default-client && npm test",
+    "test:custom": "tsx scripts/setup-tests.ts custom && cd tests/custom-output && npm test",
+    "test:new": "tsx scripts/setup-tests.ts new && cd tests/new-provider && npm test",
+    "test:watch": "vitest -c vitest.integration.config.ts",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "example:queries": "tsx examples/queryBuilder.ts",
-    "example:custom": "tsx examples/customQueries.ts",
-    "db:create": "tsx src/cli/db-create.ts",
-    "db:drop": "tsx src/cli/db-drop.ts",
-    "db:migrate": "tsx src/cli/db-migrate.ts",
-    "db:reset": "tsx src/cli/db-reset.ts",
-    "db:seed": "tsx src/cli/db-seed.ts"
+    "create": "tsx src/cli/db-create.ts",
+    "drop": "tsx src/cli/db-drop.ts",
+    "migrate": "tsx src/cli/db-migrate.ts",
+    "reset": "tsx src/cli/db-reset.ts",
+    "seed": "tsx src/cli/db-seed.ts"
   },
   "keywords": [
     "prisma",
@@ -35,52 +41,87 @@
     "hooks",
     "typescript"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "Fabrizio Spadaro",
+  "license": "MIT",
+  "bin": {
+    "prisma-flare": "./dist/cli/index.js"
+  },
+  "peerDependencies": {
+    "@prisma/client": ">=5.18.0"
+  },
+  "peerDependenciesMeta": {
+    "@prisma/client": {
+      "optional": false
+    }
+  },
   "dependencies": {
-    "@prisma/client": "^5.0.0"
+    "dotenv": "^17.2.3",
+    "pg": "^8.16.3",
+    "pluralize": "^8.0.0"
   },
   "devDependencies": {
+    "@prisma/client": "^5.18.0",
     "@types/node": "^20.19.25",
     "@types/pg": "^8.15.6",
+    "@types/pluralize": "^0.0.33",
     "@typescript-eslint/eslint-plugin": "^8.49.0",
     "@typescript-eslint/parser": "^8.49.0",
     "@vitest/ui": "^4.0.15",
-    "dotenv": "^17.2.3",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
-    "pg": "^8.16.3",
     "prettier": "^3.7.4",
-    "prisma": "^5.9.1",
+    "prisma": "^5.18.0",
+    "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.15"
   },
-  "peerDependencies": {
-    "@prisma/client": "^5.0.0"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     },
-    "./queryBuilder": {
-      "types": "./dist/core/queryBuilder.d.ts",
-      "import": "./dist/core/queryBuilder.js"
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js",
+      "require": "./dist/client/index.cjs"
+    },
+    "./generated": {
+      "types": "./dist/generated.d.ts",
+      "import": "./dist/generated.js",
+      "require": "./dist/generated.cjs"
+    },
+    "./flareBuilder": {
+      "types": "./dist/core/flareBuilder.d.ts",
+      "import": "./dist/core/flareBuilder.js",
+      "require": "./dist/core/flareBuilder.cjs"
     },
     "./hooks": {
       "types": "./dist/core/hooks.d.ts",
-      "import": "./dist/core/hooks.js"
-    },
-    "./db": {
-      "types": "./dist/core/db.d.ts",
-      "import": "./dist/core/db.js"
+      "import": "./dist/core/hooks.js",
+      "require": "./dist/core/hooks.cjs"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "client": [
+        "./dist/client/index.d.ts"
+      ],
+      "generated": [
+        "./dist/generated.d.ts"
+      ],
+      "flareBuilder": [
+        "./dist/core/flareBuilder.d.ts"
+      ],
+      "hooks": [
+        "./dist/core/hooks.d.ts"
+      ]
     }
   },
   "files": [
     "dist",
-    "README.md",
-    "QUICKSTART.md"
+    "README.md"
   ]
 }

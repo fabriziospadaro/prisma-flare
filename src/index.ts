@@ -1,19 +1,33 @@
-// Main entry point for Prismaroids
-export { db, loadCallbacks } from './core/db';
-export { default as ExtendedPrismaClient } from './core/extendedPrismaClient';
-export { default as QueryBuilder } from './core/queryBuilder';
-export { 
-  beforeCreate, 
-  afterCreate, 
-  beforeUpdate, 
-  afterUpdate, 
-  beforeDelete, 
-  afterDelete, 
+// Main entry point for Prisma Flare
+export { createFlareClient } from './core/createFlareClient';
+export type {
+  PrismaNamespace,
+  PrismaClientLike,
+  FlareClientClass,
+  FlareClientInstance,
+  FactoryFlareClientOptions,
+  // Export as FlareClientOptions for generated code compatibility
+  FactoryFlareClientOptions as FlareClientOptions
+} from './core/createFlareClient';
+export { default as FlareBuilder } from './core/flareBuilder';
+export type { RelationModelMap } from './core/flareBuilder';
+export { modelRegistry } from './core/modelRegistry';
+export {
+  beforeCreate,
+  afterCreate,
+  beforeUpdate,
+  afterUpdate,
+  beforeDelete,
+  afterDelete,
   afterChange,
-  afterUpsert 
+  afterUpsert
 } from './core/hooks';
 export { default as hookRegistry } from './core/hookRegistry';
-export { addMiddleware } from './core/hookMiddleware';
+export type { HookConfig } from './core/hookRegistry';
+export { registerHooks, registerHooksLegacy, createHooksExtension, loadCallbacks, setPrismaNamespace } from './core/hookMiddleware';
+export type { PrismaNamespaceLike } from './core/hookMiddleware';
+export { registry as dbAdapterRegistry } from './core/adapters';
+export type { DatabaseAdapter } from './core/adapters';
 
 // Export types
 export type {
@@ -23,6 +37,9 @@ export type {
   FindManyArgs,
   FindFirstArgs,
   CreateArgs,
+  CreateData,
+  CreateManyArgs,
+  CreateManyData,
   UpdateArgs,
   DeleteArgs,
   UpsertArgs,
@@ -31,5 +48,6 @@ export type {
   BeforeHookCallback,
   AfterHookCallback,
   ColumnChangeCallback,
-  AggregateResult
+  AggregateResult,
+  PaginatedResult
 } from './types';

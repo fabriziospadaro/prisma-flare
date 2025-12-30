@@ -1,0 +1,4 @@
+{
+  "modelsPath": "prisma/models",
+  "dbPath": "prisma/db"
+}

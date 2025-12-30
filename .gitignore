@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .env
+.env.test
 *.log
 .DS_Store
 *.db
@@ -8,3 +9,5 @@ dist/
 prisma/migrations/
 *.tsbuildinfo
 .vscode/
+tests/**/generated/
+*.tgz

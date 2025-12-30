@@ -1,0 +1,207 @@
+# Configuration
+
+## prisma-flare.config.json
+
+Create a `prisma-flare.config.json` in your project root to customize paths:
+
+```json
+{
+  "modelsPath": "src/models",
+  "dbPath": "src/lib/db",
+  "callbacksPath": "src/callbacks"
+}
+```
+
+### Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `modelsPath` | `prisma/models` | Where to generate query classes |
+| `dbPath` | `prisma/db` | Path to file exporting your `db` instance |
+| `callbacksPath` | `prisma/callbacks` | Directory containing callback/hook files |
+| `plurals` | `{}` | Custom pluralization for model names |
+| `prismaClientPath` | (auto-detected) | Override auto-detected Prisma client import path |
+
+### Custom Plurals
+
+Override automatic pluralization for model names:
+
+```json
+{
+  "plurals": {
+    "Person": "people",
+    "Equipment": "equipment",
+    "Child": "children"
+  }
+}
+```
+
+### Custom Prisma Client Path
+
+Override auto-detected Prisma client import path (useful for monorepos or non-standard setups):
+
+```json
+{
+  "prismaClientPath": "./generated/client"
+}
+```
+
+Or for monorepo packages:
+
+```json
+{
+  "prismaClientPath": "@myorg/database"
+}
+```
+
+---
+
+## Prisma Client Configuration
+
+### Recommended: Import from `prisma-flare/client`
+
+After running `npx prisma-flare generate`, import from `prisma-flare/client` for proper type inference:
+
+```typescript
+// prisma/db.ts
+import './callbacks';
+import { FlareClient, FlareBuilder } from 'prisma-flare/client';
+
+export const db = new FlareClient();
+```
+
+This works with **all Prisma configurations** - default `@prisma/client`, custom output paths, and the new `prisma-client` provider.
+
+### Alternative: Manual Setup with `createFlareClient`
+
+For advanced setups or if you need more control:
+
+```typescript
+// prisma/db.ts
+import './callbacks';
+import { PrismaClient, Prisma } from '@prisma/client'; // or your custom path
+import { createFlareClient } from 'prisma-flare';
+
+const FlareClient = createFlareClient(PrismaClient, Prisma);
+export const db = new FlareClient();
+```
+
+### Custom Output Path (`prisma-client-js`)
+
+```prisma
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/client"
+}
+```
+
+```typescript
+// prisma/db.ts - recommended
+import './callbacks';
+import { FlareClient } from 'prisma-flare/client';
+
+export const db = new FlareClient();
+```
+
+### New Provider (`prisma-client` - Prisma 7+)
+
+The new TypeScript-first generator requires a driver adapter. After running `npx prisma generate`, prisma-flare generates a `flare.ts` file alongside your Prisma client with full type definitions.
+
+```prisma
+// schema.prisma
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+```
+
+```typescript
+// prisma/db.ts
+import './callbacks';
+import { FlareClient } from './generated/flare';
+import { PrismaPg } from '@prisma/adapter-pg';
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+export const db = new FlareClient({ adapter });
+```
+
+**Important**: Run `npx prisma generate` before `npx prisma-flare generate` to create the client directory first.
+
+---
+
+## FlareClient Options
+
+### Disable Callbacks Middleware
+
+```typescript
+const FlareClient = createFlareClient(PrismaClient, Prisma);
+export const db = new FlareClient({ callbacks: false });
+```
+
+### With Database Adapter
+
+```typescript
+import { PrismaPg } from '@prisma/adapter-pg';
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const FlareClient = createFlareClient(PrismaClient, Prisma);
+export const db = new FlareClient({ adapter });
+```
+
+---
+
+## CLI Commands
+
+```bash
+npx prisma-flare generate   # Generate query classes and callbacks index
+npx prisma-flare create     # Create database
+npx prisma-flare drop       # Drop database
+npx prisma-flare migrate    # Run migrations
+npx prisma-flare reset      # Reset database
+npx prisma-flare seed       # Seed database
+```
+
+### Custom Database Adapters
+
+Add support for other databases:
+
+```typescript
+import { dbAdapterRegistry, DatabaseAdapter } from 'prisma-flare';
+
+const myAdapter: DatabaseAdapter = {
+  name: 'my-db',
+  matches: (url) => url.startsWith('mydb://'),
+  create: async (url) => { /* create logic */ },
+  drop: async (url) => { /* drop logic */ }
+};
+
+dbAdapterRegistry.register(myAdapter);
+```
+
+---
+
+## Import Paths Reference
+
+| Import Path | Use Case |
+|-------------|----------|
+| `prisma-flare/client` | **Recommended** - FlareClient & FlareBuilder with proper types for your project |
+| `prisma-flare` | Hooks, utilities, createFlareClient factory |
+| `prisma-flare/generated` | Auto-generated DB class with model accessors |
+
+### Example
+
+```typescript
+// FlareClient and FlareBuilder - use prisma-flare/client
+import { FlareClient, FlareBuilder } from 'prisma-flare/client';
+
+// Hooks and utilities - use prisma-flare
+import { beforeCreate, afterChange, hookRegistry } from 'prisma-flare';
+
+// Generated DB class - use prisma-flare/generated
+import { DB } from 'prisma-flare/generated';
+```

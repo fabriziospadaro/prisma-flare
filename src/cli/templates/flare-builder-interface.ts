@@ -90,24 +90,40 @@ export const FLARE_BUILDER_METHODS = {
   readOperations: [
     {
       name: 'findMany',
-      // Use Prisma.Result for proper select/include type inference
-      signature: (ns: string) => `(): Promise<${ns}.Result<ModelDelegate<T>, Args, 'findMany'>>`,
+      // Use custom FlareResultMany for proper include type inference in new provider
+      // Falls back to Prisma.Result for old provider via prismaNamespace
+      signature: (ns: string, useFlareResult?: boolean) =>
+        useFlareResult
+          ? `(): Promise<FlareResultMany<T, Args>>`
+          : `(): Promise<${ns}.Result<ModelDelegate<T>, Args, 'findMany'>>`,
     },
     {
       name: 'findFirst',
-      signature: (ns: string) => `(): Promise<${ns}.Result<ModelDelegate<T>, Args, 'findFirst'>>`,
+      signature: (ns: string, useFlareResult?: boolean) =>
+        useFlareResult
+          ? `(): Promise<FlareResultNullable<T, Args>>`
+          : `(): Promise<${ns}.Result<ModelDelegate<T>, Args, 'findFirst'>>`,
     },
     {
       name: 'findFirstOrThrow',
-      signature: (ns: string) => `(): Promise<${ns}.Result<ModelDelegate<T>, Args, 'findFirstOrThrow'>>`,
+      signature: (ns: string, useFlareResult?: boolean) =>
+        useFlareResult
+          ? `(): Promise<FlareResultRequired<T, Args>>`
+          : `(): Promise<${ns}.Result<ModelDelegate<T>, Args, 'findFirstOrThrow'>>`,
     },
     {
       name: 'findUnique',
-      signature: (ns: string) => `(): Promise<${ns}.Result<ModelDelegate<T>, Args, 'findUnique'>>`,
+      signature: (ns: string, useFlareResult?: boolean) =>
+        useFlareResult
+          ? `(): Promise<FlareResultNullable<T, Args>>`
+          : `(): Promise<${ns}.Result<ModelDelegate<T>, Args, 'findUnique'>>`,
     },
     {
       name: 'findUniqueOrThrow',
-      signature: (ns: string) => `(): Promise<${ns}.Result<ModelDelegate<T>, Args, 'findUniqueOrThrow'>>`,
+      signature: (ns: string, useFlareResult?: boolean) =>
+        useFlareResult
+          ? `(): Promise<FlareResultRequired<T, Args>>`
+          : `(): Promise<${ns}.Result<ModelDelegate<T>, Args, 'findUniqueOrThrow'>>`,
     },
     {
       name: 'pluck',
@@ -224,10 +240,14 @@ export function getAllMethods(): FlareBuilderMethod[] {
 }
 
 /**
- * Resolves a method signature, calling it with prismaNamespace if it's a function.
+ * Resolves a method signature, calling it with prismaNamespace and useFlareResult if it's a function.
  */
-function resolveSignature(sig: string | ((ns: string) => string), prismaNamespace: string): string {
-  return typeof sig === 'function' ? sig(prismaNamespace) : sig;
+function resolveSignature(
+  sig: string | ((ns: string, useFlareResult?: boolean) => string),
+  prismaNamespace: string,
+  useFlareResult: boolean
+): string {
+  return typeof sig === 'function' ? sig(prismaNamespace, useFlareResult) : sig;
 }
 
 export interface FlareBuilderInterfaceOptions {
@@ -243,6 +263,12 @@ export interface FlareBuilderInterfaceOptions {
   constructorSignature?: string;
   /** Prisma namespace name (e.g., 'Prisma' or 'BasePrisma') for Result type inference */
   prismaNamespace?: string;
+  /**
+   * Use custom FlareResult types instead of Prisma.Result for read operations.
+   * This fixes the issue where Prisma.Result doesn't work correctly with generic types
+   * in the new prisma-client provider.
+   */
+  useFlareResult?: boolean;
 }
 
 /**
@@ -256,13 +282,15 @@ export function generateFlareBuilderInterface(options: FlareBuilderInterfaceOpti
     generics = "<T extends ModelName, Args extends Record<string, any> = Record<string, never>>",
     constructorSignature,
     prismaNamespace = 'Prisma',
+    useFlareResult = false,
   } = options;
 
   const exportKeyword = shouldExport ? 'export ' : '';
   const keyword = asInterface ? 'interface' : 'declare class';
   const methods = getAllMethods();
 
-  const formatMethod = (m: FlareBuilderMethod) => `  ${m.name}${resolveSignature(m.signature, prismaNamespace)};`;
+  const formatMethod = (m: FlareBuilderMethod) =>
+    `  ${m.name}${resolveSignature(m.signature, prismaNamespace, useFlareResult)};`;
 
   const constructorLine = !asInterface && constructorSignature ? `  constructor${constructorSignature};\n\n` : '';
 

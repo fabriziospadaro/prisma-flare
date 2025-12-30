@@ -162,13 +162,13 @@ type ElementType<T> = T extends (infer E)[] ? E : T;
 
 /**
  * Find the model name that matches a given record type.
- * Iterates through all model names and returns the one whose RecordType matches.
+ * Checks if R (relation type) has all scalar fields of RecordType<M>.
+ * Uses Pick to compare only the scalar keys, avoiding mismatch from optional relations
+ * that may be present in R but not in RecordType<M>.
  */
 type FindModelName<R, M extends ModelName = ModelName> = M extends any
-  ? RecordType<M> extends R
-    ? R extends RecordType<M>
-      ? M
-      : never
+  ? R extends Pick<RecordType<M>, keyof RecordType<M>>
+    ? M
     : never
   : never;
 

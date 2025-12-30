@@ -6,6 +6,9 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['../suite/**/*.test.ts'],
+    typecheck: {
+      include: ['../suite/**/*.test-d.ts'],
+    },
     testTimeout: 30000,
     fileParallelism: false,
     maxConcurrency: 1,

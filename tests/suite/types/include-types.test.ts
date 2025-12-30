@@ -216,4 +216,85 @@ describe('Include Type Inference', () => {
       expect(authorName).toBe('Test Author');
     });
   });
+
+  describe('nested includes (callback within callback)', () => {
+    it('nested include callback has correct builder type - can call .include()', async () => {
+      const user = await DB.users.create({ email: uniqueEmail(), name: 'Author' });
+      await DB.posts.create({ title: 'Test Post', authorId: user.id });
+
+      // This tests the nested callback typing:
+      // - posts callback should be FlareBuilder<'post'>
+      // - posts.include('author') should work if 'post' model has 'author' relation
+      // If the callback is typed as `any`, this compiles but loses type safety
+      // If the callback is typed as `never`, .include('author') would be a compile error
+      const result = await DB.users
+        .withId(user.id)
+        .include('posts', (posts) => posts.include('author'))
+        .findFirst();
+
+      // Verify types are correct at each level
+      const postsLength: number = result!.posts.length;
+      const authorEmail: string = result!.posts[0].author.email;
+      const authorName: string | null = result!.posts[0].author.name;
+
+      expect(postsLength).toBe(1);
+      expect(authorEmail).toBe(user.email);
+      expect(authorName).toBe('Author');
+    });
+
+    it('nested include callback has correct where() types', async () => {
+      const user = await DB.users.create({ email: uniqueEmail() });
+      await DB.posts.create({ title: 'Published', authorId: user.id, published: true });
+      await DB.posts.create({ title: 'Draft', authorId: user.id, published: false });
+
+      // The nested callback should have properly typed .where() that accepts PostWhereInput
+      // If callback is `any`, this would work but silently lose type safety
+      // If callback is `never`, .where() would fail to compile
+      const result = await DB.users
+        .withId(user.id)
+        .include('posts', (posts) => posts.where({ published: true }))
+        .findFirst();
+
+      expect(result!.posts.length).toBe(1);
+      expect(result!.posts[0].title).toBe('Published');
+    });
+
+    it('nested include with order() has correct types', async () => {
+      const user = await DB.users.create({ email: uniqueEmail() });
+      await DB.posts.create({ title: 'B Post', authorId: user.id });
+      await DB.posts.create({ title: 'A Post', authorId: user.id });
+
+      // The nested callback should have properly typed .order() that accepts PostOrderByInput
+      const result = await DB.users
+        .withId(user.id)
+        .include('posts', (posts) => posts.order({ title: 'asc' }))
+        .findFirst();
+
+      expect(result!.posts[0].title).toBe('A Post');
+      expect(result!.posts[1].title).toBe('B Post');
+    });
+
+    it('double nested include with chained operations', async () => {
+      const user = await DB.users.create({ email: uniqueEmail(), name: 'Nested User' });
+      await DB.posts.create({ title: 'Published Post', authorId: user.id, published: true, views: 100 });
+      await DB.posts.create({ title: 'Draft Post', authorId: user.id, published: false, views: 50 });
+
+      // This tests chaining multiple operations in nested callback:
+      // .where(), .order(), .include() should all be typed correctly
+      const result = await DB.users
+        .withId(user.id)
+        .include('posts', (posts) =>
+          posts
+            .where({ published: true })
+            .order({ views: 'desc' })
+            .include('author')
+        )
+        .findFirst();
+
+      // Should only have published post, with author included
+      expect(result!.posts.length).toBe(1);
+      expect(result!.posts[0].title).toBe('Published Post');
+      expect(result!.posts[0].author.email).toBe(user.email);
+    });
+  });
 });

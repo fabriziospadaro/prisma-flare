@@ -246,6 +246,25 @@ describe('Type Safety', () => {
         expectTypeOf(builder.findMany).toBeFunction();
         expectTypeOf(builder.findFirst).toBeFunction();
       });
+
+      it('narrows return type with nested relation select', async () => {
+        const users = await DB.users
+          .select({
+            id: true,
+            posts: { select: { id: true, title: true } },
+          })
+          .findMany();
+
+        if (users.length > 0) {
+          expectTypeOf(users[0].id).toBeNumber();
+          // The nested relation should be typed
+          expectTypeOf(users[0].posts).toBeArray();
+          expectTypeOf(users[0].posts[0].id).toBeNumber();
+          expectTypeOf(users[0].posts[0].title).toBeString();
+          // @ts-expect-error - content should not be in type when not selected
+          users[0].posts[0].content;
+        }
+      });
     });
 
     describe('only()', () => {

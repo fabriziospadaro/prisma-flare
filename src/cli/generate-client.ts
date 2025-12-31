@@ -282,9 +282,7 @@ function generateDefaultTypes(resolvedImport: string): string {
 // This file provides FlareClient configured for your Prisma client output path
 
 import { PrismaClient as BasePrismaClient, Prisma as BasePrisma } from '${resolvedImport}';
-import type { FlareClientOptions } from 'prisma-flare';
-import type { ModelName } from 'prisma-flare';
-import type FlareBuilderType from 'prisma-flare/flareBuilder';
+import type { FlareClientOptions, ModelName, FlareBuilder as FlareBuilderType } from 'prisma-flare';
 
 // Re-export PrismaClient and Prisma from the configured path
 export { BasePrismaClient as PrismaClient, BasePrisma as Prisma };

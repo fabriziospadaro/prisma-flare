@@ -11,6 +11,7 @@ export default defineConfig({
     'src/cli/db-migrate.ts',
     'src/cli/db-reset.ts',
     'src/cli/db-seed.ts',
+    'src/cli/uninstall.ts',
     'src/core/flareBuilder.ts',
     'src/core/hooks.ts'
   ],

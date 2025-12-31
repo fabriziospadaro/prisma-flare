@@ -11,12 +11,11 @@
     "prepare": "npm run build",
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
-    "check": "tsc --noEmit -p tsconfig.test.json && cd tests/suite && npx tsc --noEmit && cd ../default-client && npx tsc --noEmit && cd ../custom-output && npx tsc --noEmit && cd ../new-provider && npx tsc --noEmit",
+    "check": "tsx scripts/check-types.ts",
     "lint": "eslint src --ext .ts --fix && prettier --write \"src/**/*.ts\"",
     "prepublishOnly": "npm run clean && npm run build",
     "preuninstall": "node ./dist/cli/uninstall.js || true",
-    "test": "tsx scripts/setup-tests.ts all && npm run test:suite",
-    "test:suite": "cd tests/default-client && npx vitest run && cd ../custom-output && npx vitest run && cd ../new-provider && npx vitest run",
+    "test": "tsx scripts/setup-tests.ts && tsx scripts/run-tests.ts",
     "test:watch": "cd tests/default-client && npx vitest"
   },
   "keywords": [

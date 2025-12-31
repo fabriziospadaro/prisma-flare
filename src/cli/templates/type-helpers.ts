@@ -199,12 +199,14 @@ type RelationModelName<T extends ModelName, K extends IncludeKey<T>> =
  *
  * @typeParam T - The model name
  * @typeParam Args - The query args (may contain include, select, etc.)
- * @typeParam _Op - The operation type (findFirst, findMany, etc.) - used for nullability
+ * @typeParam _Op - The operation type (unused, kept for API compatibility)
  */
-type FlareResult<T extends ModelName, Args, _Op extends string> =
-  Args extends { include: infer Inc }
-    ? RecordType<T> & IncludedRelations<T, Inc>
-    : RecordType<T>;
+type FlareResult<T extends ModelName, Args, _Op extends string = 'findFirst'> =
+  Args extends { select: infer Sel }
+    ? ${prismaNamespace}.Result<ModelDelegate<T>, { select: Sel }, 'findFirst'>
+    : Args extends { include: infer Inc }
+      ? RecordType<T> & IncludedRelations<T, Inc>
+      : RecordType<T>;
 
 /**
  * FlareResultMany - Result type for findMany operations (always returns array)

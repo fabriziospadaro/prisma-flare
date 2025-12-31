@@ -11,22 +11,9 @@
 
 import { describe, it, expectTypeOf, assertType } from 'vitest';
 import { DB } from 'prisma-flare/generated';
-import type { FlareBuilder, ModelName } from 'prisma-flare/generated';
-
-// Type helper to check RelationModelName resolves correctly
-type RelationModelNameTest = Parameters<
-  NonNullable<Parameters<typeof DB.users.include<'posts'>>[1]>
->[0];
-
-// This should be FlareBuilder<'post'>, not FlareBuilder<never>
-// If FindModelName is broken, this will be FlareBuilder<never>
+import type { FlareBuilder, ModelName } from 'prisma-flare';
 
 describe('Nested Include Callback Types', () => {
-  it('RelationModelNameTest should be FlareBuilder<"post">', () => {
-    // This explicitly tests that the callback parameter type resolves to 'post'
-    // not 'never'. If FindModelName is broken, this will fail.
-    expectTypeOf<RelationModelNameTest>().toEqualTypeOf<FlareBuilder<'post'>>();
-  });
 
   it('include callback parameter should be FlareBuilder<"post"> not FlareBuilder<never>', () => {
     // When including posts on users, the callback should receive FlareBuilder<'post'>

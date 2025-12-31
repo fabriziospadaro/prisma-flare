@@ -203,7 +203,7 @@ type RelationModelName<T extends ModelName, K extends IncludeKey<T>> =
  */
 type FlareResult<T extends ModelName, Args, _Op extends string = 'findFirst'> =
   Args extends { select: infer Sel }
-    ? ${prismaNamespace}.Result<ModelDelegate<T>, { select: Sel }, 'findFirst'>
+    ? NonNullable<${prismaNamespace}.Result<ModelDelegate<T>, { select: Sel }, 'findFirst'>>
     : Args extends { include: infer Inc }
       ? RecordType<T> & IncludedRelations<T, Inc>
       : RecordType<T>;

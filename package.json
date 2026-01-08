@@ -1,6 +1,6 @@
 {
   "name": "prisma-flare",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "description": "Prisma utilities package with callback system and query builder for chained operations",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -69,17 +69,20 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
     },
     "./client": {
       "types": "./dist/client/index.d.ts",
       "import": "./dist/client/index.js",
-      "require": "./dist/client/index.cjs"
+      "require": "./dist/client/index.cjs",
+      "default": "./dist/client/index.js"
     },
     "./generated": {
       "types": "./dist/generated.d.ts",
       "import": "./dist/generated.js",
-      "require": "./dist/generated.cjs"
+      "require": "./dist/generated.cjs",
+      "default": "./dist/generated.js"
     }
   },
   "typesVersions": {

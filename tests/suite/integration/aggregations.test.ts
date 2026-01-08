@@ -6,8 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { DB } from 'prisma-flare/generated';
-import { hookRegistry } from 'prisma-flare';
-import { cleanDatabase, disconnect, resetCounter, uniqueEmail } from '#test-helpers';
+import { cleanDatabase, disconnect, resetCounter, uniqueEmail, hookRegistry } from '#test-helpers';
 
 describe('Aggregations', () => {
   beforeEach(async () => {

@@ -83,6 +83,12 @@
       "import": "./dist/generated.js",
       "require": "./dist/generated.cjs",
       "default": "./dist/generated.js"
+    },
+    "./hooks": {
+      "types": "./dist/hooks.d.ts",
+      "import": "./dist/hooks.js",
+      "require": "./dist/hooks.cjs",
+      "default": "./dist/hooks.js"
     }
   },
   "typesVersions": {
@@ -92,6 +98,9 @@
       ],
       "generated": [
         "./dist/generated.d.ts"
+      ],
+      "hooks": [
+        "./dist/hooks.d.ts"
       ]
     }
   },

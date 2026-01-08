@@ -8,6 +8,11 @@
 import { describe, it, expectTypeOf, beforeEach, afterAll } from 'vitest';
 import { DB } from 'prisma-flare/generated';
 import {
+  cleanDatabase,
+  disconnect,
+  resetCounter,
+  uniqueEmail,
+  // Import hooks from adapter - this tests the correct source for each fixture
   beforeCreate,
   afterCreate,
   beforeUpdate,
@@ -15,8 +20,7 @@ import {
   beforeDelete,
   afterDelete,
   afterChange,
-} from 'prisma-flare';
-import { cleanDatabase, disconnect, resetCounter, uniqueEmail } from '#test-helpers';
+} from '#test-helpers';
 
 // ==================== MODEL TYPES ====================
 interface ExpectedUser {
@@ -620,6 +624,22 @@ describe('Type Safety', () => {
           expectTypeOf(result.views).toBeNumber();
           expectTypeOf(result.likes).toBeNumber();
           expectTypeOf(result.authorId).toBeNumber();
+        });
+      });
+
+      // CRITICAL: These tests verify the original issue is fixed
+      // Issue: result was typed as 'any' when using custom Prisma output
+      it('result is NOT typed as any (original issue fix verification)', () => {
+        afterCreate('user', (_args, result) => {
+          // If result was 'any', this would pass. It should fail for 'any'.
+          expectTypeOf(result).not.toBeAny();
+        });
+      });
+
+      it('result has correct record type, not any', () => {
+        afterCreate('post', (_args, result) => {
+          // If result was 'any', this would pass. It should fail for 'any'.
+          expectTypeOf(result).not.toBeAny();
         });
       });
     });

@@ -10,6 +10,19 @@ import Post from './prisma/models/Post.js';
 // Re-export shared utilities
 export { resetCounter, uniqueEmail, assertRecordCreated, assertArrayLength, assertSameRecord } from '../suite/helpers/base.js';
 
+// Re-export hooks from prisma-flare-generated (custom output path)
+export {
+  beforeCreate,
+  afterCreate,
+  beforeUpdate,
+  afterUpdate,
+  beforeDelete,
+  afterDelete,
+  afterChange,
+  afterUpsert,
+  hookRegistry,
+} from 'prisma-flare-generated';
+
 // Export DB for this configuration
 export { DB };
 

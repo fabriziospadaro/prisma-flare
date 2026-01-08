@@ -222,5 +222,54 @@ type FlareResultNullable<T extends ModelName, Args> = FlareResult<T, Args, 'find
  * FlareResultRequired - Result type for operations that always return a value (findFirstOrThrow, etc.)
  */
 type FlareResultRequired<T extends ModelName, Args> = FlareResult<T, Args, 'findFirstOrThrow'>;
+
+// ============================================================================
+// Hook Callback Types - Using YOUR Prisma client types
+// ============================================================================
+
+/**
+ * Extract field names from a model's record type
+ */
+${exportKeyword}type FieldName<T extends ModelName> = keyof NonNullable<RecordType<T>> & string;
+
+/**
+ * Callback function for before hooks
+ */
+${exportKeyword}type BeforeHookCallback<_T extends ModelName = ModelName> = (
+  args: any,
+  prisma: ${prismaClientName}
+) => Promise<void> | void;
+
+/**
+ * Callback function for after hooks
+ * The result parameter is strongly typed to the model's record type
+ */
+${exportKeyword}type AfterHookCallback<T extends ModelName = ModelName> = (
+  args: any,
+  result: RecordType<T>,
+  prisma: ${prismaClientName}
+) => Promise<void> | void;
+
+/**
+ * Callback function for column change hooks
+ */
+${exportKeyword}type ColumnChangeCallback<T extends ModelName = ModelName> = (
+  oldValue: any,
+  newValue: any,
+  record: NonNullable<RecordType<T>>,
+  prisma: ${prismaClientName}
+) => Promise<void> | void;
+
+/**
+ * Options for column change hooks (afterChange)
+ */
+${exportKeyword}interface ColumnChangeOptions<T extends ModelName = ModelName> {
+  /**
+   * Additional fields to include when fetching records for this hook.
+   * By default, only the watched column and 'id' are fetched.
+   * Use this when your callback needs access to other fields.
+   */
+  includeFields?: FieldName<T>[];
+}
 `.trimStart();
 }

@@ -6,7 +6,13 @@
  */
 
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
+import { DB } from 'prisma-flare/generated';
 import {
+  cleanDatabase,
+  disconnect,
+  resetCounter,
+  uniqueEmail,
+  // Import hooks from adapter - uses correct source for each fixture
   beforeCreate,
   afterCreate,
   beforeUpdate,
@@ -16,9 +22,7 @@ import {
   afterChange,
   afterUpsert,
   hookRegistry,
-} from 'prisma-flare';
-import { DB } from 'prisma-flare/generated';
-import { cleanDatabase, disconnect, resetCounter, uniqueEmail } from '#test-helpers';
+} from '#test-helpers';
 
 describe('Hooks System', () => {
   beforeEach(async () => {

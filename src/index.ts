@@ -12,17 +12,9 @@ export type {
 export { default as FlareBuilder } from './core/flareBuilder';
 export type { RelationModelMap } from './core/flareBuilder';
 export { modelRegistry } from './core/modelRegistry';
-export {
-  beforeCreate,
-  afterCreate,
-  beforeUpdate,
-  afterUpdate,
-  beforeDelete,
-  afterDelete,
-  afterChange,
-  afterUpsert
-} from './core/hooks';
-export { default as hookRegistry } from './core/hookRegistry';
+// Hooks are NOT exported from prisma-flare main entry point.
+// Users should import hooks from 'prisma-flare-generated' for proper types.
+// Internal code uses 'prisma-flare/hooks' for the runtime implementation.
 export type { HookConfig } from './core/hookRegistry';
 export { registerHooks, registerHooksLegacy, createHooksExtension, loadCallbacks, setPrismaNamespace } from './core/hookMiddleware';
 export type { PrismaNamespaceLike } from './core/hookMiddleware';

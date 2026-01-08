@@ -6,8 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { DB } from 'prisma-flare/generated';
-import { hookRegistry } from 'prisma-flare';
-import { cleanDatabase, disconnect, resetCounter, uniqueEmail, getPrismaClient } from '#test-helpers';
+import { cleanDatabase, disconnect, resetCounter, uniqueEmail, getPrismaClient, hookRegistry } from '#test-helpers';
 
 describe('Transactions', () => {
   beforeEach(async () => {

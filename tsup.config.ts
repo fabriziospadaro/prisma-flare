@@ -4,6 +4,7 @@ export default defineConfig({
   entry: [
     'src/index.ts',
     'src/generated.ts',
+    'src/hooks.ts',
     'src/client/index.ts',
     'src/cli/index.ts',
     'src/cli/db-create.ts',

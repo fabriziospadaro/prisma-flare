@@ -77,7 +77,7 @@ const users = await DB.users
 
 ```typescript
 // prisma/callbacks/user.ts
-import { beforeCreate, afterChange } from 'prisma-flare';
+import { beforeCreate, afterChange } from 'prisma-flare-generated';
 
 beforeCreate('user', async (args) => {
   if (!args.data.email.includes('@')) {
@@ -91,6 +91,8 @@ afterChange('post', 'published', async (oldValue, newValue, record) => {
   }
 });
 ```
+
+> **Note**: Always import hooks from `prisma-flare-generated` for proper type inference. This module is created by `npx prisma-flare generate` and provides types specific to your Prisma schema.
 
 ## Documentation
 

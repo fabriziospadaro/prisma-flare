@@ -3,6 +3,7 @@ import * as path from 'path';
 import pluralize from 'pluralize';
 import { loadConfig, findProjectRoot } from './config';
 import { getPrismaProvider } from './schema-parser';
+import { resolveSchemaPath } from './schema-resolver';
 
 function toCamelCase(str: string): string {
   return str.charAt(0).toLowerCase() + str.slice(1);
@@ -56,14 +57,17 @@ export function generateQueries() {
   const rootDir = findProjectRoot(process.cwd());
   const config = loadConfig(rootDir);
 
-  const schemaPath = path.join(rootDir, 'prisma', 'schema.prisma');
+  const resolution = resolveSchemaPath(rootDir);
 
-  if (!fs.existsSync(schemaPath)) {
-    console.error(`❌ Schema not found at ${schemaPath}`);
+  if (!resolution) {
+    console.error(`❌ Schema not found. Looked for:`);
+    console.error(`   - prisma.config.ts (Prisma 7+)`);
+    console.error(`   - prisma/schema/ directory`);
+    console.error(`   - prisma/schema.prisma file`);
     return;
   }
 
-  const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
+  const schemaContent = resolution.content;
   const modelRegex = /model\s+(\w+)\s+{/g;
   const models: string[] = [];
   let match;

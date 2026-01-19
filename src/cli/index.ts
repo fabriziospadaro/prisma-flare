@@ -24,7 +24,7 @@ const command = args[0];
 if (!command) {
   console.log('Usage: prisma-flare <command>');
   console.log('Commands:');
-  console.log('  generate    Generate query classes based on schema.prisma');
+  console.log('  generate    Generate query classes based on Prisma schema');
   console.log('  create      Create the database');
   console.log('  drop        Drop the database');
   console.log('  migrate     Migrate the database');

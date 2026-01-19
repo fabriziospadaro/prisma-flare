@@ -23,6 +23,7 @@ npm install prisma-flare
 |----------------|-------------------|---------|
 | 5.x - 7.x | `prisma-client-js` | ✅ |
 | 7.x+ | `prisma-client` | ✅ |
+| 7.x+ | Multi-file schema | ✅ |
 
 ## Quick Start
 
@@ -130,7 +131,19 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 export const db = new FlareClient({ adapter });
 ```
 
-See [Configuration](docs/configuration.md#new-provider-prisma-client---prisma-7) for full setup.
+### Multi-File Schema (Prisma 7+)
+
+prisma-flare automatically supports multi-file schemas. Just run `npx prisma-flare generate`:
+
+```
+prisma/schema/
+├── _base.prisma    # generator & datasource (can be in any file)
+├── user.prisma
+├── post.prisma
+└── ...
+```
+
+See [Configuration](docs/configuration.md#schema-auto-detection) for details.
 
 ## Transactions
 

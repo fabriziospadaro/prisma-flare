@@ -358,7 +358,7 @@ export function generateClient() {
     // User explicitly configured a path
     prismaClientImport = config.prismaClientPath;
   } else {
-    // Auto-detect from schema.prisma
+    // Auto-detect from schema (supports single-file and multi-file schemas)
     prismaClientImport = getPrismaClientPath(rootDir);
   }
 

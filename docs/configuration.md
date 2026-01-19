@@ -1,5 +1,43 @@
 # Configuration
 
+## Schema Auto-Detection
+
+prisma-flare automatically finds your Prisma schema. No configuration needed for standard setups.
+
+**Detection order:**
+1. `prisma.config.ts` - Reads schema path (Prisma 7+ / monorepos)
+2. `prisma/schema/` directory - Multi-file schema (Prisma 7+)
+3. `prisma/schema.prisma` - Single-file schema (default)
+
+### Multi-File Schema Support (Prisma 7+)
+
+prisma-flare fully supports Prisma 7+ multi-file schemas:
+
+```
+prisma/schema/
+├── _base.prisma      # generator & datasource
+├── user.prisma       # User model
+├── post.prisma       # Post model
+└── ...
+```
+
+The generator/datasource can be in any `.prisma` file - prisma-flare will find it automatically.
+
+### Using prisma.config.ts
+
+For custom schema locations or monorepos, prisma-flare reads from `prisma.config.ts`:
+
+```typescript
+// prisma.config.ts
+import { defineConfig } from 'prisma/config';
+
+export default defineConfig({
+  schema: 'prisma/schema',  // directory or file path
+});
+```
+
+---
+
 ## prisma-flare.config.json
 
 Create a `prisma-flare.config.json` in your project root to customize paths:

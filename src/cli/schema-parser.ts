@@ -1,5 +1,5 @@
-import * as fs from 'fs';
 import * as path from 'path';
+import { resolveSchemaPath } from './schema-resolver';
 
 export interface GeneratorClientConfig {
   provider: string;
@@ -43,76 +43,79 @@ export function parseGeneratorClient(schemaContent: string): GeneratorClientConf
  *
  * @param rootDir - The project root directory
  * @param output - The custom output path from generator client (if any)
+ * @param schemaDir - The directory containing the schema (for resolving relative paths)
  * @returns The import path for PrismaClient (either '@prisma/client' or a relative path)
  */
-export function resolvePrismaClientPath(rootDir: string, output?: string): string {
+export function resolvePrismaClientPath(rootDir: string, output?: string, schemaDir?: string): string {
   if (!output) {
     // Default: @prisma/client
     return '@prisma/client';
   }
 
-  // Custom output is relative to schema.prisma location (prisma/ directory)
-  const schemaDir = path.join(rootDir, 'prisma');
-  const absolutePath = path.resolve(schemaDir, output);
+  // Custom output is relative to schema location
+  // For single-file: relative to the directory containing schema.prisma
+  // For multi-file: relative to the schema directory
+  const resolvedSchemaDir = schemaDir || path.join(rootDir, 'prisma');
+  const absolutePath = path.resolve(resolvedSchemaDir, output);
 
   // Return the absolute path - the caller will convert to appropriate relative path
   return absolutePath;
 }
 
 /**
- * Gets the Prisma client import path by reading the schema.prisma file.
+ * Gets the Prisma client import path by reading the Prisma schema.
+ * Supports both single-file and multi-file (directory) schemas.
  *
  * @param rootDir - The project root directory
  * @returns The import path for PrismaClient
  */
 export function getPrismaClientPath(rootDir: string): string {
-  const schemaPath = path.join(rootDir, 'prisma', 'schema.prisma');
+  const resolution = resolveSchemaPath(rootDir);
 
-  if (!fs.existsSync(schemaPath)) {
+  if (!resolution) {
     // No schema found, use default
     return '@prisma/client';
   }
 
-  const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
-  const config = parseGeneratorClient(schemaContent);
+  const config = parseGeneratorClient(resolution.generatorContent);
 
-  return resolvePrismaClientPath(rootDir, config?.output);
+  return resolvePrismaClientPath(rootDir, config?.output, resolution.schemaDir);
 }
 
 /**
  * Checks if the project uses a custom Prisma client output path.
+ * Supports both single-file and multi-file (directory) schemas.
  *
  * @param rootDir - The project root directory
  * @returns true if using custom output, false if using default @prisma/client
  */
 export function hasCustomPrismaOutput(rootDir: string): boolean {
-  const schemaPath = path.join(rootDir, 'prisma', 'schema.prisma');
+  const resolution = resolveSchemaPath(rootDir);
 
-  if (!fs.existsSync(schemaPath)) {
+  if (!resolution) {
     return false;
   }
 
-  const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
-  const config = parseGeneratorClient(schemaContent);
+  const config = parseGeneratorClient(resolution.generatorContent);
 
   return config?.output != null;
 }
 
 /**
  * Gets the Prisma generator provider type from the schema.
+ * Supports both single-file and multi-file (directory) schemas.
  *
  * @param rootDir - The project root directory
  * @returns The provider type ('prisma-client-js' or 'prisma-client')
  */
 export function getPrismaProvider(rootDir: string): string {
-  const schemaPath = path.join(rootDir, 'prisma', 'schema.prisma');
+  const resolution = resolveSchemaPath(rootDir);
 
-  if (!fs.existsSync(schemaPath)) {
+  if (!resolution) {
     return 'prisma-client-js';
   }
 
-  const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
-  const config = parseGeneratorClient(schemaContent);
+  const config = parseGeneratorClient(resolution.generatorContent);
 
   return config?.provider || 'prisma-client-js';
 }
@@ -244,19 +247,19 @@ ${entries.join(',\n')}
 
 /**
  * Gets the RelationModelMap type for a project.
+ * Supports both single-file and multi-file (directory) schemas.
  *
  * @param rootDir - The project root directory
  * @returns The RelationModelMap type definition string, or null if schema not found
  */
 export function getRelationModelMap(rootDir: string): string | null {
-  const schemaPath = path.join(rootDir, 'prisma', 'schema.prisma');
+  const resolution = resolveSchemaPath(rootDir);
 
-  if (!fs.existsSync(schemaPath)) {
+  if (!resolution) {
     return null;
   }
 
-  const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
-  const models = parseModelRelations(schemaContent);
+  const models = parseModelRelations(resolution.content);
 
   return generateRelationModelMap(models);
 }

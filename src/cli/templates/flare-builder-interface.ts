@@ -202,7 +202,10 @@ export const FLARE_BUILDER_METHODS = {
   pagination: [
     {
       name: 'paginate',
-      signature: '(page?: number, perPage?: number): Promise<PaginatedResult<RecordType<T>>>',
+      signature: (ns: string, useFlareResult?: boolean) =>
+        useFlareResult
+          ? `(page?: number, perPage?: number): Promise<PaginatedResult<FlareResult<T, Args>>>`
+          : `(page?: number, perPage?: number): Promise<PaginatedResult<${ns}.Result<ModelDelegate<T>, Args, 'findFirstOrThrow'>>>`,
     },
   ],
   existence: [
@@ -219,7 +222,10 @@ export const FLARE_BUILDER_METHODS = {
     },
     {
       name: 'chunk',
-      signature: '(size: number, callback: (results: RecordType<T>[]) => Promise<void> | void): Promise<void>',
+      signature: (ns: string, useFlareResult?: boolean) =>
+        useFlareResult
+          ? `(size: number, callback: (results: FlareResultMany<T, Args>) => Promise<void> | void): Promise<void>`
+          : `(size: number, callback: (results: ${ns}.Result<ModelDelegate<T>, Args, 'findMany'>) => Promise<void> | void): Promise<void>`,
     },
     {
       name: 'clone',

@@ -503,7 +503,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @param page - Page number (1-based)
    * @param perPage - Number of records per page
    */
-  async paginate(page: number = 1, perPage: number = 15): Promise<PaginatedResult<RecordType<T>>> {
+  async paginate(page: number = 1, perPage: number = 15): Promise<PaginatedResult<Prisma.Result<ModelDelegate<T>, Args, 'findFirstOrThrow'>>> {
     const skip = (page - 1) * perPage;
     const take = perPage;
 
@@ -553,7 +553,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    */
   async chunk(
     size: number,
-    callback: (results: RecordType<T>[]) => Promise<void> | void
+    callback: (results: Prisma.Result<ModelDelegate<T>, Args, 'findMany'>) => Promise<void> | void
   ): Promise<void> {
     let page = 1;
     let hasMore = true;
@@ -598,7 +598,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @throws {Prisma.NotFoundError} When no record matches the query
    * @returns Promise resolving to the found record
    */
-  async findFirstOrThrow(): Promise<NonNullable<RecordType<T>>> {
+  async findFirstOrThrow(): Promise<Prisma.Result<ModelDelegate<T>, Args, 'findFirstOrThrow'>> {
     return (this.model as any).findFirstOrThrow(this.query);
   }
 
@@ -609,7 +609,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @throws {Prisma.NotFoundError} When no record is found
    * @returns Promise resolving to the found record
    */
-  async findUniqueOrThrow(): Promise<NonNullable<RecordType<T>>> {
+  async findUniqueOrThrow(): Promise<Prisma.Result<ModelDelegate<T>, Args, 'findUniqueOrThrow'>> {
     return (this.model as any).findUniqueOrThrow(this.query);
   }
 

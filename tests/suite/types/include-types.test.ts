@@ -217,6 +217,83 @@ describe('Include Type Inference', () => {
     });
   });
 
+  describe('paginate with include', () => {
+    it('paginate returns data with included relations typed correctly', async () => {
+      const user = await DB.users.create({ email: uniqueEmail() });
+      await DB.posts.createMany([
+        { title: 'Post 1', authorId: user.id },
+        { title: 'Post 2', authorId: user.id },
+      ]);
+
+      const result = await DB.users.include('posts').paginate(1, 10);
+
+      // This will cause a TypeScript error if paginate drops the Args generic
+      const postsLength: number = result.data[0].posts.length;
+      expect(postsLength).toBe(2);
+      expect(result.meta.total).toBe(1);
+    });
+
+    it('paginate with callback include preserves nested types', async () => {
+      const user = await DB.users.create({ email: uniqueEmail() });
+      await DB.posts.create({ title: 'Published', authorId: user.id, published: true });
+
+      const result = await DB.users
+        .include('posts', (posts) => posts.where({ published: true }))
+        .paginate(1, 10);
+
+      const title: string = result.data[0].posts[0].title;
+      expect(title).toBe('Published');
+    });
+  });
+
+  describe('findFirstOrThrow with include', () => {
+    it('returns result with included relations typed correctly', async () => {
+      const user = await DB.users.create({ email: uniqueEmail() });
+      await DB.posts.create({ title: 'Test Post', authorId: user.id });
+
+      const result = await DB.users.withId(user.id).include('posts').findFirstOrThrow();
+
+      // This will cause a TypeScript error if findFirstOrThrow drops Args
+      const postsLength: number = result.posts.length;
+      expect(postsLength).toBe(1);
+      expect(result.posts[0].title).toBe('Test Post');
+    });
+  });
+
+  describe('findUniqueOrThrow with include', () => {
+    it('returns result with included relations typed correctly', async () => {
+      const user = await DB.users.create({ email: uniqueEmail() });
+      await DB.posts.create({ title: 'Unique Post', authorId: user.id });
+
+      const result = await DB.users.where({ id: user.id }).include('posts').findUniqueOrThrow();
+
+      // This will cause a TypeScript error if findUniqueOrThrow drops Args
+      const postsLength: number = result.posts.length;
+      expect(postsLength).toBe(1);
+      expect(result.posts[0].title).toBe('Unique Post');
+    });
+  });
+
+  describe('chunk with include', () => {
+    it('callback receives results with included relations typed correctly', async () => {
+      const user = await DB.users.create({ email: uniqueEmail() });
+      await DB.posts.createMany([
+        { title: 'Chunk Post 1', authorId: user.id },
+        { title: 'Chunk Post 2', authorId: user.id },
+      ]);
+
+      const collected: number[] = [];
+      await DB.users.include('posts').chunk(10, (results) => {
+        // This will cause a TypeScript error if chunk drops Args
+        for (const u of results) {
+          collected.push(u.posts.length);
+        }
+      });
+
+      expect(collected).toContain(2);
+    });
+  });
+
   describe('nested includes (callback within callback)', () => {
     it('nested include callback has correct builder type - can call .include()', async () => {
       const user = await DB.users.create({ email: uniqueEmail(), name: 'Author' });

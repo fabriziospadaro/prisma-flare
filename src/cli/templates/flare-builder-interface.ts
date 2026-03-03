@@ -25,55 +25,55 @@ export const FLARE_BUILDER_METHODS = {
   whereConditions: [
     {
       name: 'where',
-      signature: '(condition: WhereInput<T>): FlareBuilder<T, Args & { where: WhereInput<T> }>',
+      signature: '(condition: WhereInput<T>): this',
     },
     {
       name: 'andWhere',
-      signature: '(condition: WhereInput<T>): FlareBuilder<T, Args & { where: WhereInput<T> }>',
+      signature: '(condition: WhereInput<T>): this',
     },
     {
       name: 'orWhere',
-      signature: '(condition: WhereInput<T>): FlareBuilder<T, Args & { where: WhereInput<T> }>',
+      signature: '(condition: WhereInput<T>): this',
     },
     {
       name: 'whereGroup',
       signature:
-        "(callback: (builder: FlareBuilder<T, Record<string, never>>) => FlareBuilder<T, any>, mode?: 'AND' | 'OR'): FlareBuilder<T, Args & { where: WhereInput<T> }>",
+        "(callback: (builder: FlareBuilder<T, Record<string, never>>) => FlareBuilder<T, any>, mode?: 'AND' | 'OR'): this",
     },
     {
       name: 'orWhereGroup',
       signature:
-        '(callback: (builder: FlareBuilder<T, Record<string, never>>) => FlareBuilder<T, any>): FlareBuilder<T, Args & { where: WhereInput<T> }>',
+        '(callback: (builder: FlareBuilder<T, Record<string, never>>) => FlareBuilder<T, any>): this',
     },
     {
       name: 'withId',
-      signature: '(id: number | string): FlareBuilder<T, Args & { where: { id: number | string } }>',
+      signature: '(id: number | string): this',
     },
   ],
   orderingAndLimiting: [
     {
       name: 'order',
-      signature: '(orderBy: OrderByInput<T>): FlareBuilder<T, Args & { orderBy: OrderByInput<T> }>',
+      signature: '(orderBy: OrderByInput<T>): this',
     },
     {
       name: 'first',
-      signature: '(key?: keyof RecordType<T> | string): FlareBuilder<T, Args & { orderBy: any; take: number }>',
+      signature: '(key?: keyof RecordType<T> | string): this',
     },
     {
       name: 'last',
-      signature: '(key?: keyof RecordType<T> | string): FlareBuilder<T, Args & { orderBy: any; take: number }>',
+      signature: '(key?: keyof RecordType<T> | string): this',
     },
     {
       name: 'limit',
-      signature: '(count: number): FlareBuilder<T, Args & { take: number }>',
+      signature: '(count: number): this',
     },
     {
       name: 'skip',
-      signature: '(count: number): FlareBuilder<T, Args & { skip: number }>',
+      signature: '(count: number): this',
     },
     {
       name: 'distinct',
-      signature: '(fields: DistinctInput<T>): FlareBuilder<T, Args & { distinct: DistinctInput<T> }>',
+      signature: '(fields: DistinctInput<T>): this',
     },
   ],
   selection: [
@@ -215,7 +215,7 @@ export const FLARE_BUILDER_METHODS = {
     {
       name: 'when',
       signature:
-        '(condition: boolean | (() => boolean), callback: (qb: FlareBuilder<T, Args>) => void): FlareBuilder<T, Args>',
+        '(condition: boolean | (() => boolean), callback: (qb: this) => void): this',
     },
     {
       name: 'chunk',

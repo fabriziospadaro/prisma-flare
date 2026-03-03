@@ -12,6 +12,8 @@ import {
   disconnect,
   resetCounter,
   uniqueEmail,
+  User,
+  Post,
   // Import hooks from adapter - this tests the correct source for each fixture
   beforeCreate,
   afterCreate,
@@ -770,6 +772,150 @@ describe('Type Safety', () => {
         expectTypeOf(result[0].id).toBeNumber();
         expectTypeOf(result[0].email).toBeString();
       }
+    });
+  });
+
+  // ==================== CUSTOM MODEL METHOD CHAINING ====================
+  describe('Custom Model Method Chaining', () => {
+    describe('custom methods after FlareBuilder methods preserve subclass type', () => {
+      it('custom method after where()', () => {
+        const builder = new User().where({ email: 'test@test.com' }).withName('Alice');
+        expectTypeOf(builder.findMany).toBeFunction();
+        expectTypeOf(builder.withName).toBeFunction();
+        expectTypeOf(builder.withEmail).toBeFunction();
+      });
+
+      it('custom method after withId()', () => {
+        const builder = new User().withId(1).withName('Alice');
+        expectTypeOf(builder.findMany).toBeFunction();
+        expectTypeOf(builder.withEmail).toBeFunction();
+      });
+
+      it('custom method after order()', () => {
+        const builder = new Post().order({ createdAt: 'desc' }).published();
+        expectTypeOf(builder.findMany).toBeFunction();
+        expectTypeOf(builder.published).toBeFunction();
+        expectTypeOf(builder.drafts).toBeFunction();
+        expectTypeOf(builder.withTitle).toBeFunction();
+      });
+
+      it('custom method after limit()', () => {
+        const builder = new Post().limit(10).published();
+        expectTypeOf(builder.findMany).toBeFunction();
+        expectTypeOf(builder.withAuthorId).toBeFunction();
+      });
+
+      it('custom method after skip()', () => {
+        const builder = new User().skip(5).withEmail('test@test.com');
+        expectTypeOf(builder.findMany).toBeFunction();
+        expectTypeOf(builder.withName).toBeFunction();
+      });
+
+      it('custom method after andWhere()', () => {
+        const builder = new User()
+          .where({ status: 'active' })
+          .andWhere({ name: { not: null } })
+          .withName('Alice');
+        expectTypeOf(builder.findMany).toBeFunction();
+      });
+
+      it('custom method after orWhere()', () => {
+        const builder = new User()
+          .where({ status: 'active' })
+          .orWhere({ status: 'pending' })
+          .withEmail('test@test.com');
+        expectTypeOf(builder.findMany).toBeFunction();
+      });
+
+      it('custom method after distinct()', () => {
+        const builder = new User().distinct(['status']).withName('Alice');
+        expectTypeOf(builder.findMany).toBeFunction();
+      });
+
+      it('custom method after first()', () => {
+        const builder = new Post().first().published();
+        expectTypeOf(builder.findFirst).toBeFunction();
+        expectTypeOf(builder.withTitle).toBeFunction();
+      });
+
+      it('custom method after last()', () => {
+        const builder = new Post().last().drafts();
+        expectTypeOf(builder.findFirst).toBeFunction();
+        expectTypeOf(builder.withTitle).toBeFunction();
+      });
+
+      it('custom method after when()', () => {
+        const builder = new Post()
+          .when(true, qb => qb.where({ published: true }))
+          .withTitle('Test');
+        expectTypeOf(builder.findMany).toBeFunction();
+        expectTypeOf(builder.published).toBeFunction();
+      });
+    });
+
+    describe('complex chaining preserves subclass type throughout', () => {
+      it('FlareBuilder methods interleaved with custom methods', () => {
+        const builder = new Post()
+          .published()
+          .order({ createdAt: 'desc' })
+          .withTitle('Test')
+          .limit(10)
+          .withAuthorId(1);
+        expectTypeOf(builder.findMany).toBeFunction();
+        expectTypeOf(builder.published).toBeFunction();
+        expectTypeOf(builder.withTitle).toBeFunction();
+      });
+
+      it('multiple FlareBuilder methods then custom method', () => {
+        const builder = new User()
+          .where({ status: 'active' })
+          .order({ name: 'asc' })
+          .limit(10)
+          .skip(5)
+          .withName('Alice');
+        expectTypeOf(builder.findMany).toBeFunction();
+        expectTypeOf(builder.withEmail).toBeFunction();
+        expectTypeOf(builder.createdAfter).toBeFunction();
+      });
+
+      it('alternating custom and FlareBuilder methods', () => {
+        const builder = new Post()
+          .withTitle('Test')
+          .where({ views: { gte: 100 } })
+          .published()
+          .order({ createdAt: 'desc' })
+          .withAuthorId(1)
+          .limit(5);
+        expectTypeOf(builder.findMany).toBeFunction();
+        expectTypeOf(builder.drafts).toBeFunction();
+      });
+    });
+
+    describe('select/include still accumulate Args for typed results', () => {
+      it('select narrows return type on base FlareBuilder', async () => {
+        const users = await DB.users
+          .where({ status: 'active' })
+          .select({ id: true, email: true })
+          .findMany();
+
+        if (users.length > 0) {
+          expectTypeOf(users[0].id).toBeNumber();
+          expectTypeOf(users[0].email).toBeString();
+          // @ts-expect-error - name should not be in type when not selected
+          users[0].name;
+        }
+      });
+
+      it('include adds relation to type on base FlareBuilder', async () => {
+        const users = await DB.users
+          .where({ status: 'active' })
+          .include('posts')
+          .findMany();
+
+        if (users.length > 0) {
+          expectTypeOf(users[0].posts).toBeArray();
+        }
+      });
     });
   });
 });

@@ -169,7 +169,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    *   .findMany()
    * // Equivalent to: { AND: [{ published: true }, { authorId: 1 }] }
    */
-  where(condition: WhereInput<T>): FlareBuilder<T, Args & { where: WhereInput<T> }> {
+  where(condition: WhereInput<T>): this {
     if (!this.query.where || Object.keys(this.query.where).length === 0) {
       // First where condition - set directly
       this.query.where = condition as any;
@@ -178,7 +178,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
       const prevWhere = this.query.where;
       this.query.where = { AND: [prevWhere, condition] } as any;
     }
-    return this as any;
+    return this;
   }
 
   /**
@@ -191,7 +191,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    *   .andWhere({ createdAt: { gte: new Date('2024-01-01') } })
    *   .findMany()
    */
-  andWhere(condition: WhereInput<T>): FlareBuilder<T, Args & { where: WhereInput<T> }> {
+  andWhere(condition: WhereInput<T>): this {
     return this.where(condition);
   }
 
@@ -228,14 +228,14 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    *   .findMany()
    * // Result: published AND (category='news' OR category='tech')
    */
-  orWhere(condition: WhereInput<T>): FlareBuilder<T, Args & { where: WhereInput<T> }> {
+  orWhere(condition: WhereInput<T>): this {
     if (!this.query.where || Object.keys(this.query.where).length === 0) {
       this.query.where = condition as any;
     } else {
       const prevWhere = this.query.where;
       this.query.where = { OR: [prevWhere, condition] } as any;
     }
-    return this as any;
+    return this;
   }
 
   /**
@@ -269,7 +269,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
   whereGroup(
     callback: (builder: FlareBuilder<T, Record<string, never>>) => FlareBuilder<T, any>,
     mode: 'AND' | 'OR' = 'AND'
-  ): FlareBuilder<T, Args & { where: WhereInput<T> }> {
+  ): this {
     // Create a fresh builder for the group
     const groupBuilder = new FlareBuilder<T, Record<string, never>>(this.model, {});
     callback(groupBuilder);
@@ -277,7 +277,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
     const groupWhere = groupBuilder.getQuery().where;
 
     if (!groupWhere || Object.keys(groupWhere).length === 0) {
-      return this as any;
+      return this;
     }
 
     if (!this.query.where || Object.keys(this.query.where).length === 0) {
@@ -287,7 +287,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
       this.query.where = { [mode]: [prevWhere, groupWhere] } as any;
     }
 
-    return this as any;
+    return this;
   }
 
   /**
@@ -308,7 +308,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    */
   orWhereGroup(
     callback: (builder: FlareBuilder<T, Record<string, never>>) => FlareBuilder<T, any>
-  ): FlareBuilder<T, Args & { where: WhereInput<T> }> {
+  ): this {
     return this.whereGroup(callback, 'OR');
   }
 
@@ -317,7 +317,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * Uses the same AND composition as where() for consistency.
    * @param id - The id to search for
    */
-  withId(id: number | string): FlareBuilder<T, Args & { where: { id: number | string } }> {
+  withId(id: number | string): this {
     if (!id) {
       throw new Error('Id is required');
     }
@@ -328,50 +328,50 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
       const prevWhere = this.query.where;
       this.query.where = { AND: [prevWhere, { id }] } as any;
     }
-    return this as any;
+    return this;
   }
 
   /**
    * Adds an order by condition to the query
    * @param orderBy - OrderBy object matching your Prisma model
    */
-  order(orderBy: OrderByInput<T>): FlareBuilder<T, Args & { orderBy: OrderByInput<T> }> {
+  order(orderBy: OrderByInput<T>): this {
     this.query.orderBy = orderBy;
-    return this as any;
+    return this;
   }
 
   /**
    * Gets the last record sorted by the specified field
    * @param key - Field to sort by (defaults to 'createdAt')
    */
-  last(key: keyof RecordType<T> | string = 'createdAt'): FlareBuilder<T, Args & { orderBy: any; take: number }> {
-    return this.order({ [key as string]: 'desc' } as any).limit(1) as any;
+  last(key: keyof RecordType<T> | string = 'createdAt'): this {
+    return this.order({ [key as string]: 'desc' } as any).limit(1);
   }
 
   /**
    * Gets the first record sorted by the specified field
    * @param key - Field to sort by (defaults to 'createdAt')
    */
-  first(key: keyof RecordType<T> | string = 'createdAt'): FlareBuilder<T, Args & { orderBy: any; take: number }> {
-    return this.order({ [key as string]: 'asc' } as any).limit(1) as any;
+  first(key: keyof RecordType<T> | string = 'createdAt'): this {
+    return this.order({ [key as string]: 'asc' } as any).limit(1);
   }
 
   /**
    * Sets a limit on the number of records to retrieve
    * @param limit - Maximum number of records
    */
-  limit(limit: number): FlareBuilder<T, Args & { take: number }> {
+  limit(limit: number): this {
     this.query.take = limit;
-    return this as any;
+    return this;
   }
 
   /**
    * Sets distinct fields for the query
    * @param distinct - Fields to be distinct
    */
-  distinct(distinct: DistinctInput<T>): FlareBuilder<T, Args & { distinct: DistinctInput<T> }> {
+  distinct(distinct: DistinctInput<T>): this {
     this.query.distinct = distinct;
-    return this as any;
+    return this;
   }
 
   /**
@@ -481,9 +481,9 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * Skips the specified number of records
    * @param offset - Number of records to skip
    */
-  skip(offset: number): FlareBuilder<T, Args & { skip: number }> {
+  skip(offset: number): this {
     this.query.skip = offset;
-    return this as any;
+    return this;
   }
 
   /**

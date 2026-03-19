@@ -94,9 +94,10 @@ import {
  */
 export function beforeCreate<T extends ModelName>(
   model: T,
-  callback: BeforeHookCallback<T>
+  callback: BeforeHookCallback<T>,
+  options?: HookOptions
 ): void {
-  _beforeCreate(model as any, callback as any);
+  _beforeCreate(model as any, callback as any, options);
 }
 
 /**
@@ -104,9 +105,10 @@ export function beforeCreate<T extends ModelName>(
  */
 export function afterCreate<T extends ModelName>(
   model: T,
-  callback: AfterHookCallback<T>
+  callback: AfterHookCallback<T>,
+  options?: HookOptions
 ): void {
-  _afterCreate(model as any, callback as any);
+  _afterCreate(model as any, callback as any, options);
 }
 
 /**
@@ -114,9 +116,10 @@ export function afterCreate<T extends ModelName>(
  */
 export function beforeUpdate<T extends ModelName>(
   model: T,
-  callback: BeforeHookCallback<T>
+  callback: BeforeHookCallback<T>,
+  options?: HookOptions
 ): void {
-  _beforeUpdate(model as any, callback as any);
+  _beforeUpdate(model as any, callback as any, options);
 }
 
 /**
@@ -124,9 +127,10 @@ export function beforeUpdate<T extends ModelName>(
  */
 export function afterUpdate<T extends ModelName>(
   model: T,
-  callback: AfterHookCallback<T>
+  callback: AfterHookCallback<T>,
+  options?: HookOptions
 ): void {
-  _afterUpdate(model as any, callback as any);
+  _afterUpdate(model as any, callback as any, options);
 }
 
 /**
@@ -134,9 +138,10 @@ export function afterUpdate<T extends ModelName>(
  */
 export function beforeDelete<T extends ModelName>(
   model: T,
-  callback: BeforeHookCallback<T>
+  callback: BeforeHookCallback<T>,
+  options?: HookOptions
 ): void {
-  _beforeDelete(model as any, callback as any);
+  _beforeDelete(model as any, callback as any, options);
 }
 
 /**
@@ -144,9 +149,10 @@ export function beforeDelete<T extends ModelName>(
  */
 export function afterDelete<T extends ModelName>(
   model: T,
-  callback: AfterHookCallback<T>
+  callback: AfterHookCallback<T>,
+  options?: HookOptions
 ): void {
-  _afterDelete(model as any, callback as any);
+  _afterDelete(model as any, callback as any, options);
 }
 
 /**
@@ -166,9 +172,10 @@ export function afterChange<T extends ModelName>(
  */
 export function afterUpsert<T extends ModelName>(
   model: T,
-  callback: AfterHookCallback<T>
+  callback: AfterHookCallback<T>,
+  options?: HookOptions
 ): void {
-  _afterUpsert(model as any, callback as any);
+  _afterUpsert(model as any, callback as any, options);
 }
 
 // Re-export hookRegistry for advanced use cases
@@ -273,7 +280,8 @@ import {
  */
 export declare function beforeCreate<T extends ModelName>(
   model: T,
-  callback: BeforeHookCallback<T>
+  callback: BeforeHookCallback<T>,
+  options?: HookOptions
 ): void;
 
 /**
@@ -281,7 +289,8 @@ export declare function beforeCreate<T extends ModelName>(
  */
 export declare function afterCreate<T extends ModelName>(
   model: T,
-  callback: AfterHookCallback<T>
+  callback: AfterHookCallback<T>,
+  options?: HookOptions
 ): void;
 
 /**
@@ -289,7 +298,8 @@ export declare function afterCreate<T extends ModelName>(
  */
 export declare function beforeUpdate<T extends ModelName>(
   model: T,
-  callback: BeforeHookCallback<T>
+  callback: BeforeHookCallback<T>,
+  options?: HookOptions
 ): void;
 
 /**
@@ -297,7 +307,8 @@ export declare function beforeUpdate<T extends ModelName>(
  */
 export declare function afterUpdate<T extends ModelName>(
   model: T,
-  callback: AfterHookCallback<T>
+  callback: AfterHookCallback<T>,
+  options?: HookOptions
 ): void;
 
 /**
@@ -305,7 +316,8 @@ export declare function afterUpdate<T extends ModelName>(
  */
 export declare function beforeDelete<T extends ModelName>(
   model: T,
-  callback: BeforeHookCallback<T>
+  callback: BeforeHookCallback<T>,
+  options?: HookOptions
 ): void;
 
 /**
@@ -313,7 +325,8 @@ export declare function beforeDelete<T extends ModelName>(
  */
 export declare function afterDelete<T extends ModelName>(
   model: T,
-  callback: AfterHookCallback<T>
+  callback: AfterHookCallback<T>,
+  options?: HookOptions
 ): void;
 
 /**
@@ -331,7 +344,8 @@ export declare function afterChange<T extends ModelName>(
  */
 export declare function afterUpsert<T extends ModelName>(
   model: T,
-  callback: AfterHookCallback<T>
+  callback: AfterHookCallback<T>,
+  options?: HookOptions
 ): void;
 
 // Re-export hookRegistry for advanced use cases
@@ -510,6 +524,7 @@ import type {
   AfterHookCallback,
   ColumnChangeCallback,
   ColumnChangeOptions,
+  HookOptions,
   FieldName,
   HookConfig
 } from 'prisma-flare';
@@ -558,7 +573,8 @@ export declare class FlareClient extends BasePrismaClient {
  */
 export declare function beforeCreate<T extends ModelName>(
   model: T,
-  callback: BeforeHookCallback<T>
+  callback: BeforeHookCallback<T>,
+  options?: HookOptions
 ): void;
 
 /**
@@ -566,7 +582,8 @@ export declare function beforeCreate<T extends ModelName>(
  */
 export declare function afterCreate<T extends ModelName>(
   model: T,
-  callback: AfterHookCallback<T>
+  callback: AfterHookCallback<T>,
+  options?: HookOptions
 ): void;
 
 /**
@@ -574,7 +591,8 @@ export declare function afterCreate<T extends ModelName>(
  */
 export declare function beforeUpdate<T extends ModelName>(
   model: T,
-  callback: BeforeHookCallback<T>
+  callback: BeforeHookCallback<T>,
+  options?: HookOptions
 ): void;
 
 /**
@@ -582,7 +600,8 @@ export declare function beforeUpdate<T extends ModelName>(
  */
 export declare function afterUpdate<T extends ModelName>(
   model: T,
-  callback: AfterHookCallback<T>
+  callback: AfterHookCallback<T>,
+  options?: HookOptions
 ): void;
 
 /**
@@ -590,7 +609,8 @@ export declare function afterUpdate<T extends ModelName>(
  */
 export declare function beforeDelete<T extends ModelName>(
   model: T,
-  callback: BeforeHookCallback<T>
+  callback: BeforeHookCallback<T>,
+  options?: HookOptions
 ): void;
 
 /**
@@ -598,7 +618,8 @@ export declare function beforeDelete<T extends ModelName>(
  */
 export declare function afterDelete<T extends ModelName>(
   model: T,
-  callback: AfterHookCallback<T>
+  callback: AfterHookCallback<T>,
+  options?: HookOptions
 ): void;
 
 /**
@@ -616,7 +637,8 @@ export declare function afterChange<T extends ModelName>(
  */
 export declare function afterUpsert<T extends ModelName>(
   model: T,
-  callback: AfterHookCallback<T>
+  callback: AfterHookCallback<T>,
+  options?: HookOptions
 ): void;
 
 // Re-export hookRegistry for advanced use cases

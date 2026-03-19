@@ -553,6 +553,110 @@ describe('Hooks System', () => {
     });
   });
 
+  // ==================== TAG-BASED HOOK MANAGEMENT ====================
+  describe('tag-based disable/enable', () => {
+    it('disable(tag) prevents tagged hooks from running', async () => {
+      const tagged = vi.fn();
+      const untagged = vi.fn();
+      afterCreate('user', tagged, { tag: 'audit' });
+      afterCreate('user', untagged);
+
+      hookRegistry.disable('audit');
+
+      await DB.users.create({ email: uniqueEmail() });
+
+      expect(tagged).not.toHaveBeenCalled();
+      expect(untagged).toHaveBeenCalledTimes(1);
+    });
+
+    it('enable(tag) re-enables tagged hooks', async () => {
+      const callback = vi.fn();
+      afterCreate('user', callback, { tag: 'audit' });
+
+      hookRegistry.disable('audit');
+      await DB.users.create({ email: uniqueEmail() });
+      expect(callback).not.toHaveBeenCalled();
+
+      hookRegistry.enable('audit');
+      await DB.users.create({ email: uniqueEmail() });
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    it('works with beforeCreate hooks', async () => {
+      const callback = vi.fn();
+      beforeCreate('user', callback, { tag: 'validation' });
+
+      hookRegistry.disable('validation');
+      await DB.users.create({ email: uniqueEmail() });
+
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('works with afterUpdate hooks', async () => {
+      const callback = vi.fn();
+      afterUpdate('user', callback, { tag: 'changelog' });
+
+      hookRegistry.disable('changelog');
+
+      const user = await DB.users.create({ email: uniqueEmail() });
+      await DB.users.withId(user.id).update({ name: 'Updated' });
+
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('works with afterDelete hooks', async () => {
+      const callback = vi.fn();
+      afterDelete('user', callback, { tag: 'cleanup' });
+
+      hookRegistry.disable('cleanup');
+
+      const user = await DB.users.create({ email: uniqueEmail() });
+      await DB.users.withId(user.id).delete();
+
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('works with afterChange column hooks via tag option', async () => {
+      const callback = vi.fn();
+      afterChange('user', 'status', callback, { tag: 'changelog' });
+
+      hookRegistry.disable('changelog');
+
+      const user = await DB.users.create({ email: uniqueEmail(), status: 'pending' });
+      await DB.users.withId(user.id).update({ status: 'active' });
+
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('multiple tags can be disabled independently', async () => {
+      const audit = vi.fn();
+      const changelog = vi.fn();
+      afterCreate('user', audit, { tag: 'audit' });
+      afterCreate('user', changelog, { tag: 'changelog' });
+
+      hookRegistry.disable('audit');
+      await DB.users.create({ email: uniqueEmail() });
+
+      expect(audit).not.toHaveBeenCalled();
+      expect(changelog).toHaveBeenCalledTimes(1);
+    });
+
+    it('clearAll resets disabled tags', async () => {
+      const callback = vi.fn();
+      afterCreate('user', callback, { tag: 'audit' });
+
+      hookRegistry.disable('audit');
+      hookRegistry.clearAll();
+
+      // After clearAll, tag is re-enabled but hooks are also cleared
+      // Re-register and verify the tag is no longer disabled
+      afterCreate('user', callback, { tag: 'audit' });
+      await DB.users.create({ email: uniqueEmail() });
+
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+  });
+
   // ==================== ASYNC HOOKS ====================
   describe('async hooks', () => {
     it('beforeCreate waits for async callback', async () => {

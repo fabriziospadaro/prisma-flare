@@ -42,6 +42,7 @@ export type {
   AfterHookCallback,
   ColumnChangeCallback,
   ColumnChangeOptions,
+  HookOptions,
   AggregateResult,
   PaginatedResult
 } from './types';

@@ -263,6 +263,11 @@ ${exportKeyword}type ColumnChangeCallback<T extends ModelName = ModelName> = (
 /**
  * Options for column change hooks (afterChange)
  */
+${exportKeyword}interface HookOptions {
+  /** Tag to group hooks. Tagged hooks can be disabled/enabled via hookRegistry.disable(tag)/enable(tag). */
+  tag?: string;
+}
+
 ${exportKeyword}interface ColumnChangeOptions<T extends ModelName = ModelName> {
   /**
    * Additional fields to include when fetching records for this hook.
@@ -270,6 +275,8 @@ ${exportKeyword}interface ColumnChangeOptions<T extends ModelName = ModelName> {
    * Use this when your callback needs access to other fields.
    */
   includeFields?: FieldName<T>[];
+  /** Tag to group hooks. Tagged hooks can be disabled/enabled via hookRegistry.disable(tag)/enable(tag). */
+  tag?: string;
 }
 `.trimStart();
 }

@@ -89,17 +89,26 @@ const DEFAULT_CONFIG: HookConfig = {
 };
 
 /**
+ * Internal type for storing a hook with its optional tag
+ */
+interface HookEntry {
+  callback: BeforeHookCallback | AfterHookCallback;
+  tag?: string;
+}
+
+/**
  * Internal type for storing column hook with its options
  */
 interface ColumnHookEntry {
   callback: ColumnChangeCallback<any>;
   options?: ColumnChangeOptions<any>;
+  tag?: string;
 }
 
 class HookRegistry {
   private hooks: {
-    before: Record<string, BeforeHookCallback[]>;
-    after: Record<string, AfterHookCallback[]>;
+    before: Record<string, HookEntry[]>;
+    after: Record<string, HookEntry[]>;
   };
 
   private columnHooks: {
@@ -109,6 +118,7 @@ class HookRegistry {
   private fieldCache: Record<string, Record<string, true>>;
   private modelsWithColumnHooks: Set<string>;
   private config: HookConfig;
+  private disabledTags: Set<string>;
 
   constructor() {
     this.hooks = {
@@ -121,6 +131,7 @@ class HookRegistry {
     this.fieldCache = {};
     this.modelsWithColumnHooks = new Set();
     this.config = { ...DEFAULT_CONFIG };
+    this.disabledTags = new Set();
   }
 
   /**
@@ -154,13 +165,14 @@ class HookRegistry {
     model: ModelName,
     action: PrismaOperation,
     timing: HookTiming,
-    fn: BeforeHookCallback | AfterHookCallback
+    fn: BeforeHookCallback | AfterHookCallback,
+    tag?: string
   ): void {
     const key = `${model}:${action}`;
     if (!this.hooks[timing][key]) {
       this.hooks[timing][key] = [];
     }
-    this.hooks[timing][key].push(fn as any);
+    this.hooks[timing][key].push({ callback: fn, tag });
   }
 
   addColumnHook(
@@ -173,10 +185,30 @@ class HookRegistry {
     if (!this.columnHooks.afterChange[key]) {
       this.columnHooks.afterChange[key] = [];
     }
-    this.columnHooks.afterChange[key].push({ callback: fn, options });
+    this.columnHooks.afterChange[key].push({ callback: fn, options, tag: options?.tag });
     this.modelsWithColumnHooks.add(model);
     // Clear the field cache for this model since includeFields may have changed
     delete this.fieldCache[model];
+  }
+
+  /**
+   * Disable all hooks with the given tag.
+   * @example hookRegistry.disable('changelog');
+   */
+  disable(tag: string): void {
+    this.disabledTags.add(tag);
+  }
+
+  /**
+   * Re-enable hooks with the given tag.
+   * @example hookRegistry.enable('changelog');
+   */
+  enable(tag: string): void {
+    this.disabledTags.delete(tag);
+  }
+
+  private isEnabled(tag?: string): boolean {
+    return !tag || !this.disabledTags.has(tag);
   }
 
   async runHooks(
@@ -187,13 +219,14 @@ class HookRegistry {
     prisma: any
   ): Promise<void> {
     const key = `${model}:${action}`;
-    const hooks = this.hooks[timing]?.[key] ?? [];
+    const entries = this.hooks[timing]?.[key] ?? [];
+    const active = entries.filter(e => this.isEnabled(e.tag));
 
     if (timing === 'after') {
-      await Promise.all(hooks.map(hook => (hook as any)(...args, prisma)));
+      await Promise.all(active.map(e => (e.callback as any)(...args, prisma)));
     } else {
-      for (const hook of hooks) {
-        await (hook as any)(...args, prisma);
+      for (const entry of active) {
+        await (entry.callback as any)(...args, prisma);
       }
     }
   }
@@ -206,7 +239,9 @@ class HookRegistry {
 
       if (entries && !valuesEqual(newData[column], prevData[column])) {
         for (const entry of entries) {
-          promises.push(entry.callback(prevData[column], newData[column], newData, prisma) as Promise<void>);
+          if (this.isEnabled(entry.tag)) {
+            promises.push(entry.callback(prevData[column], newData[column], newData, prisma) as Promise<void>);
+          }
         }
       }
     }
@@ -299,6 +334,7 @@ class HookRegistry {
     this.fieldCache = {};
     this.modelsWithColumnHooks.clear();
     this.config = { ...DEFAULT_CONFIG };
+    this.disabledTags.clear();
   }
 }
 

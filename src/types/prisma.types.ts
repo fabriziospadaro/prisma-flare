@@ -240,6 +240,20 @@ export type ColumnChangeCallback<T extends ModelName = ModelName> = (
 ) => Promise<void> | void;
 
 /**
+ * Options for hook registration (beforeCreate, afterCreate, etc.)
+ */
+export interface HookOptions {
+  /**
+   * Tag to group hooks. Tagged hooks can be disabled/enabled via hookRegistry.
+   *
+   * @example
+   * afterCreate('user', callback, { tag: 'audit' });
+   * hookRegistry.disable('audit'); // disables all hooks tagged 'audit'
+   */
+  tag?: string;
+}
+
+/**
  * Options for column change hooks (afterChange)
  */
 export interface ColumnChangeOptions<T extends ModelName = ModelName> {
@@ -255,6 +269,11 @@ export interface ColumnChangeOptions<T extends ModelName = ModelName> {
    * });
    */
   includeFields?: FieldName<T>[];
+
+  /**
+   * Tag to group hooks. Tagged hooks can be disabled/enabled via hookRegistry.
+   */
+  tag?: string;
 }
 
 /**

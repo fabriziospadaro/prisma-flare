@@ -36,6 +36,7 @@ export type {
   AfterHookCallback,
   ColumnChangeCallback,
   ColumnChangeOptions,
+  HookOptions,
   FieldName,
   AggregateResult,
   QueryArgs,

@@ -151,13 +151,33 @@ export interface ParsedModel {
 export function parseModelRelations(schemaContent: string): ParsedModel[] {
   const models: ParsedModel[] = [];
 
-  // Match each model block
-  const modelRegex = /model\s+(\w+)\s*\{([^}]+)\}/g;
+  const modelStartRegex = /model\s+(\w+)\s*\{/g;
   let modelMatch;
 
-  while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
+  while ((modelMatch = modelStartRegex.exec(schemaContent)) !== null) {
     const modelName = modelMatch[1];
-    const modelBody = modelMatch[2];
+    const bodyStart = modelMatch.index + modelMatch[0].length;
+    let depth = 1;
+    let i = bodyStart;
+    let inString = false;
+    let stringChar = '';
+    while (i < schemaContent.length && depth > 0) {
+      const ch = schemaContent[i];
+      if (inString) {
+        if (ch === stringChar && schemaContent[i - 1] !== '\\') inString = false;
+      } else {
+        if (ch === '"' || ch === "'") {
+          inString = true;
+          stringChar = ch;
+        } else if (ch === '{') {
+          depth++;
+        } else if (ch === '}') {
+          depth--;
+        }
+      }
+      i++;
+    }
+    const modelBody = schemaContent.slice(bodyStart, i - 1);
     const relations: ModelRelation[] = [];
 
     // Parse each line in the model body
@@ -247,19 +267,51 @@ ${entries.join(',\n')}
 
 /**
  * Gets the RelationModelMap type for a project.
- * Supports both single-file and multi-file (directory) schemas.
+ * Uses Prisma's DMMF (Data Model Meta Format) for reliable model introspection.
+ * Falls back to schema parsing if DMMF is not available.
  *
  * @param rootDir - The project root directory
  * @returns The RelationModelMap type definition string, or null if schema not found
  */
 export function getRelationModelMap(rootDir: string): string | null {
-  const resolution = resolveSchemaPath(rootDir);
+  const dmmfResult = getRelationModelMapFromDMMF(rootDir);
+  if (dmmfResult) return dmmfResult;
 
-  if (!resolution) {
-    return null;
-  }
+  const resolution = resolveSchemaPath(rootDir);
+  if (!resolution) return null;
 
   const models = parseModelRelations(resolution.content);
-
   return generateRelationModelMap(models);
+}
+
+/**
+ * Extracts the RelationModelMap from Prisma's DMMF (generated client metadata).
+ * This is the most reliable approach as it uses Prisma's own parser output.
+ */
+function getRelationModelMapFromDMMF(rootDir: string): string | null {
+  try {
+    const clientPath = getPrismaClientPath(rootDir);
+    const resolvedPath = clientPath.startsWith('/')
+      ? clientPath
+      : require.resolve(clientPath, { paths: [rootDir] });
+
+    const prismaModule = require(resolvedPath);
+    const dmmf = prismaModule?.Prisma?.dmmf ?? prismaModule?.dmmf;
+    if (!dmmf?.datamodel?.models) return null;
+
+    const models: ParsedModel[] = dmmf.datamodel.models.map((model: { name: string; fields: Array<{ name: string; kind: string; type: string; isList: boolean }> }) => ({
+      name: model.name,
+      relations: model.fields
+        .filter((f: { kind: string }) => f.kind === 'object')
+        .map((f: { name: string; type: string; isList: boolean }) => ({
+          fieldName: f.name,
+          targetModel: f.type,
+          isArray: f.isList,
+        })),
+    }));
+
+    return generateRelationModelMap(models);
+  } catch {
+    return null;
+  }
 }

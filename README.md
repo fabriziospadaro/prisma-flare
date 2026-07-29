@@ -74,6 +74,27 @@ const users = await DB.users
   .findMany();
 ```
 
+### 5. Chain Raw SQL Without Breaking the Chain
+
+`defer()` queues async work until execution, so a scope backed by raw SQL stays
+chainable like any other:
+
+```typescript
+class User extends FlareBuilder<'user'> {
+  random(n = 1) {
+    return this.defer(async (qb) => {
+      const rows = await db.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "User" ORDER BY RANDOM() LIMIT ${n}`;
+      qb.where({ id: { in: rows.map((r) => r.id) } });
+    });
+  }
+}
+
+await DB.users.random(4).active().order({ name: 'asc' }).findMany();
+```
+
+See [API Reference](docs/api-reference.md#deferresolver) for the full semantics.
+
 ### 4. Define Callbacks
 
 ```typescript

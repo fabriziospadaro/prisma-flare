@@ -150,10 +150,95 @@ type GetRelationModel<K extends string> = K extends keyof RelationModelMap
 export default class FlareBuilder<T extends ModelName, Args extends Record<string, any> = Record<string, never>> {
   protected model: ModelDelegate<T>;
   protected query: QueryArgs;
+  private deferred: Array<(qb: this) => Promise<unknown>> = [];
+  private resolution?: Promise<void>;
+  private settling = false;
 
   constructor(model: ModelDelegate<T>, query: QueryArgs = {}) {
     this.model = model;
     this.query = query;
+  }
+
+  /**
+   * Queues async work to run right before the query executes, so a scope
+   * backed by raw SQL (or any other await) stays synchronously chainable.
+   *
+   * The callback receives this builder and typically narrows it with where().
+   * Callbacks run in registration order at execution time, and each one runs at
+   * most once per builder no matter how many terminals execute on it.
+   *
+   * @param resolver - Async function that refines the query before it runs
+   *
+   * @example
+   * class User extends FlareBuilder<'user'> {
+   *   random(n = 1) {
+   *     return this.defer(async (qb) => {
+   *       const rows = await db.$queryRaw<{ id: number }[]>`
+   *         SELECT id FROM "User" ORDER BY RANDOM() LIMIT ${n}`;
+   *       qb.where({ id: { in: rows.map((r) => r.id) } });
+   *     });
+   *   }
+   * }
+   *
+   * // Chains like any other scope, no await needed mid-chain:
+   * await DB.users.random(4).active().order({ name: 'asc' }).findMany();
+   */
+  defer(resolver: (qb: this) => Promise<unknown>): this {
+    this.deferred.push(resolver);
+    return this;
+  }
+
+  /**
+   * Single execution funnel for every terminal method.
+   *
+   * Settles queued defer() callbacks, then hands the finished query to the
+   * delegate call. Terminals build their arguments inside the callback, so the
+   * query they send always reflects whatever the resolvers added.
+   */
+  protected async execute<R>(run: (query: QueryArgs) => Promise<R> | R): Promise<R> {
+    await this.settle();
+    return run(this.query);
+  }
+
+  /**
+   * Runs any defer() callbacks that haven't run yet, exactly once each.
+   *
+   * New work registered after an execution chains onto the previous resolution,
+   * which keeps registration order intact and makes a failed resolver sticky
+   * rather than silently retried by the next terminal. Terminals sharing a
+   * builder await the same resolution, so the raw queries are never duplicated.
+   *
+   * A resolver must not run a terminal on the builder it is resolving, since
+   * that query is still being assembled. That would deadlock, so it throws
+   * instead: query a different builder or the raw client.
+   */
+  private settle(): Promise<void> {
+    if (this.settling) {
+      return Promise.reject(
+        new Error(
+          'prisma-flare: a defer() resolver executed a query on the builder it is resolving. ' +
+            'Use a separate builder or the raw client inside the resolver.'
+        )
+      );
+    }
+
+    if (this.deferred.length === 0) {
+      return this.resolution ?? Promise.resolve();
+    }
+
+    const pending = this.deferred;
+    this.deferred = [];
+
+    this.resolution = (this.resolution ?? Promise.resolve()).then(async () => {
+      this.settling = true;
+      try {
+        for (const resolver of pending) await resolver(this);
+      } finally {
+        this.settling = false;
+      }
+    });
+
+    return this.resolution;
   }
 
   /**
@@ -390,14 +475,11 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
   async only<K extends keyof RecordType<T>>(
     field: K
   ): Promise<RecordType<T>[K] | null> {
-    this.query.select = { [field]: true };
-    const result = await (this.model as any).findFirst(this.query);
-
-    if (!result) {
-      return null;
-    }
-
-    return result[field] as RecordType<T>[K];
+    return this.execute(async (query) => {
+      query.select = { [field]: true };
+      const result = await (this.model as any).findFirst(query);
+      return result ? (result[field] as RecordType<T>[K]) : null;
+    });
   }
 
   /**
@@ -491,11 +573,13 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @param existenceKey - Key to check for existence (defaults to 'id')
    */
   async exists(existenceKey = 'id'): Promise<boolean> {
-    const result = await (this.model as any).findFirst({
-      where: this.query.where,
-      select: { [existenceKey]: true },
+    return this.execute(async (query) => {
+      const result = await (this.model as any).findFirst({
+        where: query.where,
+        select: { [existenceKey]: true },
+      });
+      return Boolean(result);
     });
-    return Boolean(result);
   }
 
   /**
@@ -504,30 +588,29 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @param perPage - Number of records per page
    */
   async paginate(page: number = 1, perPage: number = 15): Promise<PaginatedResult<Prisma.Result<ModelDelegate<T>, Args, 'findFirstOrThrow'>>> {
-    const skip = (page - 1) * perPage;
-    const take = perPage;
+    return this.execute(async (query) => {
+      query.skip = (page - 1) * perPage;
+      query.take = perPage;
 
-    this.query.skip = skip;
-    this.query.take = take;
+      const [data, total] = await Promise.all([
+        (this.model as any).findMany(query),
+        (this.model as any).count({ where: query.where }),
+      ]);
 
-    const [data, total] = await Promise.all([
-      (this.model as any).findMany(this.query),
-      (this.model as any).count({ where: this.query.where }),
-    ]);
+      const lastPage = Math.ceil(total / perPage);
 
-    const lastPage = Math.ceil(total / perPage);
-
-    return {
-      data,
-      meta: {
-        total,
-        lastPage,
-        currentPage: page,
-        perPage,
-        prev: page > 1 ? page - 1 : null,
-        next: page < lastPage ? page + 1 : null,
-      },
-    };
+      return {
+        data,
+        meta: {
+          total,
+          lastPage,
+          currentPage: page,
+          perPage,
+          prev: page > 1 ? page - 1 : null,
+          next: page < lastPage ? page + 1 : null,
+        },
+      };
+    });
   }
 
   /**
@@ -555,41 +638,52 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
     size: number,
     callback: (results: Prisma.Result<ModelDelegate<T>, Args, 'findMany'>) => Promise<void> | void
   ): Promise<void> {
-    let page = 1;
-    let hasMore = true;
+    return this.execute(async (query) => {
+      let page = 1;
+      let hasMore = true;
 
-    const originalSkip = this.query.skip;
-    const originalTake = this.query.take;
+      const originalSkip = query.skip;
+      const originalTake = query.take;
 
-    while (hasMore) {
-      this.query.skip = (page - 1) * size;
-      this.query.take = size;
+      while (hasMore) {
+        query.skip = (page - 1) * size;
+        query.take = size;
 
-      const results = await (this.model as any).findMany(this.query);
+        const results = await (this.model as any).findMany(query);
 
-      if (results.length > 0) {
-        await callback(results);
-        page++;
+        if (results.length > 0) {
+          await callback(results);
+          page++;
 
-        if (results.length < size) {
+          if (results.length < size) {
+            hasMore = false;
+          }
+        } else {
           hasMore = false;
         }
-      } else {
-        hasMore = false;
       }
-    }
 
-    this.query.skip = originalSkip;
-    this.query.take = originalTake;
+      query.skip = originalSkip;
+      query.take = originalTake;
+    });
   }
 
   /**
    * Clones the current query builder instance.
    * Uses structuredClone for proper handling of Date, BigInt, etc.
+   *
+   * The clone keeps the runtime class of the original, so custom model scopes
+   * stay available on it. Unresolved defer() callbacks are copied so each clone
+   * resolves them against its own query instead of sharing a resolved result.
    */
-  clone(): FlareBuilder<T, Args> {
-    const queryCopy = deepClone(this.query);
-    return new FlareBuilder<T, Args>(this.model, queryCopy);
+  clone(): this {
+    const copy = Object.create(Object.getPrototypeOf(this)) as this;
+    copy.model = this.model;
+    copy.query = deepClone(this.query);
+    copy.deferred = [...this.deferred];
+    copy.resolution = undefined;
+    copy.settling = false;
+    return copy;
   }
 
   /**
@@ -599,7 +693,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @returns Promise resolving to the found record
    */
   async findFirstOrThrow(): Promise<Prisma.Result<ModelDelegate<T>, Args, 'findFirstOrThrow'>> {
-    return (this.model as any).findFirstOrThrow(this.query);
+    return this.execute((query) => (this.model as any).findFirstOrThrow(query));
   }
 
   /**
@@ -610,7 +704,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @returns Promise resolving to the found record
    */
   async findUniqueOrThrow(): Promise<Prisma.Result<ModelDelegate<T>, Args, 'findUniqueOrThrow'>> {
-    return (this.model as any).findUniqueOrThrow(this.query);
+    return this.execute((query) => (this.model as any).findUniqueOrThrow(query));
   }
 
   /**
@@ -619,7 +713,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @returns Promise resolving to an array of records matching the query
    */
   async findMany(): Promise<Prisma.Result<ModelDelegate<T>, Args, 'findMany'>> {
-    return (this.model as any).findMany(this.query);
+    return this.execute((query) => (this.model as any).findMany(query));
   }
 
   /**
@@ -628,7 +722,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @returns Promise resolving to the first matching record or null
    */
   async findFirst(): Promise<Prisma.Result<ModelDelegate<T>, Args, 'findFirst'>> {
-    return (this.model as any).findFirst(this.query);
+    return this.execute((query) => (this.model as any).findFirst(query));
   }
 
   /**
@@ -638,7 +732,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @returns Promise resolving to the found record or null
    */
   async findUnique(): Promise<Prisma.Result<ModelDelegate<T>, Args, 'findUnique'>> {
-    return (this.model as any).findUnique(this.query);
+    return this.execute((query) => (this.model as any).findUnique(query));
   }
 
   /**
@@ -648,8 +742,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @returns Promise resolving to the newly created record
    */
   async create(data: CreateData<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'create'>> {
-    const query = { ...this.query, data };
-    return (this.model as any).create(query);
+    return this.execute((q) => (this.model as any).create({ ...q, data }));
   }
 
   /**
@@ -660,8 +753,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @returns Promise resolving to the count of created records
    */
   async createMany(data: CreateManyData<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'createMany'>> {
-    const query = { ...this.query, data };
-    return (this.model as any).createMany(query);
+    return this.execute((q) => (this.model as any).createMany({ ...q, data }));
   }
 
   /**
@@ -672,8 +764,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @returns Promise resolving to the deleted record
    */
   async delete(args?: DeleteArgs<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'delete'>> {
-    const query = args ? { ...this.query, ...args } : this.query;
-    return (this.model as any).delete(query);
+    return this.execute((q) => (this.model as any).delete(args ? { ...q, ...args } : q));
   }
 
   /**
@@ -684,8 +775,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @returns Promise resolving to the count of deleted records
    */
   async deleteMany(args?: DeleteManyArgs<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'deleteMany'>> {
-    const query = args ? { ...this.query, ...args } : this.query;
-    return (this.model as any).deleteMany(query);
+    return this.execute((q) => (this.model as any).deleteMany(args ? { ...q, ...args } : q));
   }
 
   /**
@@ -696,8 +786,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @returns Promise resolving to the updated record
    */
   async update(data: UpdateData<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'update'>> {
-    const query = { ...this.query, data };
-    return (this.model as any).update(query);
+    return this.execute((q) => (this.model as any).update({ ...q, data }));
   }
 
   /**
@@ -708,8 +797,7 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @returns Promise resolving to the count of updated records
    */
   async updateMany(data: UpdateManyData<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'updateMany'>> {
-    const query = { ...this.query, data };
-    return (this.model as any).updateMany(query);
+    return this.execute((q) => (this.model as any).updateMany({ ...q, data }));
   }
 
   /**
@@ -720,15 +808,14 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @returns Promise resolving to the upserted record
    */
   async upsert(args?: UpsertArgs<T>): Promise<Prisma.Result<ModelDelegate<T>, Args, 'upsert'>> {
-    const query = args ? { ...this.query, ...args } : this.query;
-    return (this.model as any).upsert(query);
+    return this.execute((q) => (this.model as any).upsert(args ? { ...q, ...args } : q));
   }
 
   /**
    * Counts the number of records matching the query
    */
   async count(): Promise<number> {
-    return (this.model as any).count(this.query);
+    return this.execute((query) => (this.model as any).count(query));
   }
 
   /**
@@ -736,11 +823,13 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @param field - Field name to sum
    */
   async sum(field: SumFields<T> & string): Promise<number | null> {
-    const result = await (this.model as any).aggregate({
-      _sum: { [field]: true },
-      where: this.query.where,
+    return this.execute(async (query) => {
+      const result = await (this.model as any).aggregate({
+        _sum: { [field]: true },
+        where: query.where,
+      });
+      return result._sum[field];
     });
-    return result._sum[field];
   }
 
   /**
@@ -748,11 +837,13 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @param field - Field name to average
    */
   async avg(field: AvgFields<T> & string): Promise<number | null> {
-    const result = await (this.model as any).aggregate({
-      _avg: { [field]: true },
-      where: this.query.where,
+    return this.execute(async (query) => {
+      const result = await (this.model as any).aggregate({
+        _avg: { [field]: true },
+        where: query.where,
+      });
+      return result._avg[field];
     });
-    return result._avg[field];
   }
 
   /**
@@ -760,11 +851,13 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @param field - Field name to find minimum
    */
   async min(field: MinFields<T> & string): Promise<any> {
-    const result = await (this.model as any).aggregate({
-      _min: { [field]: true },
-      where: this.query.where,
+    return this.execute(async (query) => {
+      const result = await (this.model as any).aggregate({
+        _min: { [field]: true },
+        where: query.where,
+      });
+      return result._min[field];
     });
-    return result._min[field];
   }
 
   /**
@@ -772,11 +865,13 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @param field - Field name to find maximum
    */
   async max(field: MaxFields<T> & string): Promise<any> {
-    const result = await (this.model as any).aggregate({
-      _max: { [field]: true },
-      where: this.query.where,
+    return this.execute(async (query) => {
+      const result = await (this.model as any).aggregate({
+        _max: { [field]: true },
+        where: query.where,
+      });
+      return result._max[field];
     });
-    return result._max[field];
   }
 
   /**
@@ -784,8 +879,10 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
    * @param field - Field name to pluck
    */
   async pluck<K extends keyof RecordType<T>>(field: K): Promise<RecordType<T>[K][]> {
-    this.query.select = { [field]: true };
-    const results = await (this.model as any).findMany(this.query);
-    return results.map((result: any) => result[field]);
+    return this.execute(async (query) => {
+      query.select = { [field]: true };
+      const results = await (this.model as any).findMany(query);
+      return results.map((result: any) => result[field]);
+    });
   }
 }

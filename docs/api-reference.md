@@ -402,10 +402,54 @@ await DB.posts.chunk(100, async (posts) => {
 ```
 
 ### `clone()`
-Creates an independent copy of the current query builder.
+Creates an independent copy of the current query builder. The copy keeps the
+original's class, so custom model scopes remain available on it.
 
 ```typescript
 const baseQuery = DB.posts.where({ published: true });
 const recent = baseQuery.clone().order({ createdAt: 'desc' }).findMany();
 const popular = baseQuery.clone().order({ likes: 'desc' }).findMany();
 ```
+
+### `defer(resolver)`
+Queues async work to run right before the query executes. This keeps a scope
+backed by raw SQL (or any other `await`) synchronously chainable, so callers
+never see a promise in the middle of a chain.
+
+```typescript
+class User extends FlareBuilder<'user'> {
+  constructor() { super(db.user); }
+
+  active() { return this.where({ status: 'active' }); }
+
+  // Prisma has no random ordering, so drop to SQL without breaking the chain
+  random(n = 1) {
+    return this.defer(async (qb) => {
+      const rows = await db.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "User" ORDER BY RANDOM() LIMIT ${n}`;
+      qb.where({ id: { in: rows.map((r) => r.id) } });
+    });
+  }
+}
+```
+
+```typescript
+// Reads like any other scope, in any order
+const picked = await DB.users.random(4).active().order({ name: 'asc' }).findMany();
+```
+
+**Semantics**
+
+- Resolvers run in registration order, immediately before the query executes.
+- Every terminal method resolves pending work, including `paginate`, `chunk`,
+  `pluck`, `only`, `exists`, the aggregates, and the write methods.
+- Because resolvers run at execution time, they observe conditions added after
+  `defer()` was called.
+- Each resolver runs at most once per builder. Repeated or concurrent terminals
+  on the same builder await one shared resolution instead of re-issuing the SQL.
+- A failed resolver stays failed: the rejection is replayed to later terminals
+  rather than silently retrying the query.
+- `clone()` copies unresolved work, so each clone resolves against its own query.
+- A resolver must not run a terminal on the builder it is resolving. That query
+  is still being assembled, so it throws with a descriptive error instead of
+  deadlocking. Use a separate builder or the raw client inside a resolver.

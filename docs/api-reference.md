@@ -544,6 +544,104 @@ visibleTo(viewerId: string) {
 }
 ```
 
+**Composing scopes**
+
+A deferred scope is just a scope, so it composes into other scopes and helpers.
+
+```typescript
+class Post extends FlareBuilder<'post'> {
+  published() { return this.where({ published: true }); }
+
+  hot() {
+    return this.defer('id', () => db.$queryRaw<{ id: number }[]>`
+      SELECT id FROM "Post" WHERE likes > 3`);
+  }
+
+  // Deferred plus normal, behind one name
+  hotAndPublished() { return this.hot().published(); }
+
+  // Two deferred scopes stacked; both filters apply
+  hotByProlific(min: number) {
+    return this.hot().defer('authorId', () => db.$queryRaw<{ authorId: number }[]>`
+      SELECT "authorId" FROM "Post" GROUP BY "authorId" HAVING COUNT(*) >= ${min}`);
+  }
+}
+```
+
+It also works behind `when()`, so a deferred query is skipped entirely when the
+condition is false rather than running and being discarded:
+
+```typescript
+await DB.posts
+  .when(!!search, (q) => q.matching(search))
+  .published()
+  .findMany();
+```
+
+**Deferring things that are not filters**
+
+The generic form can set anything a scope can, so the async source may decide
+the ordering or the page size rather than the rows:
+
+```typescript
+// Sort direction chosen by a computed statistic
+byExternalPriority() {
+  return this.defer(async (qb) => {
+    const [{ dir }] = await db.$queryRaw<{ dir: string }[]>`
+      SELECT CASE WHEN AVG(likes) > 5 THEN 'desc' ELSE 'asc' END AS dir FROM "Post"`;
+    qb.order({ likes: dir as 'asc' | 'desc' });
+  });
+}
+
+// Page size from a plan or settings lookup.
+// Note the block body: an arrow that returns the builder would be treated as a
+// filter, so defer() throws rather than recursing.
+pageSizedByPlan(plan: string) {
+  return this.defer(async (qb) => {
+    qb.limit(await settings.pageSize(plan));
+  });
+}
+
+// Threshold computed at query time, not hardcoded
+topPercentile(p: number) {
+  return this.defer(async (qb) => {
+    const cutoff = await stats.likesPercentile(p);
+    qb.where({ likes: { gte: cutoff } });
+  });
+}
+```
+
+**Reusable helpers**
+
+Because the field form takes a plain function, a scope factory is a few lines
+and works across models:
+
+```typescript
+function idScope<B extends FlareBuilder<any, any>>(qb: B, field: string, q: () => Promise<{ id: number }[]>) {
+  return qb.defer(field, q) as B;
+}
+
+// In any model
+matching(term: string) {
+  return idScope(this, 'id', () => searchIndex.query(term));
+}
+```
+
+**Ranked results lose their order**
+
+Worth knowing before you build search on this. A deferred filter becomes
+`WHERE id IN (...)`, and SQL does not promise to return rows in the order of an
+`IN` list, so the ranking from your query is gone by the time Prisma answers.
+Carry the rank back and re-sort:
+
+```typescript
+async function rankedSearch(term: string) {
+  const ranked = await searchIndex.query(term);          // ids, best first
+  const rows = await DB.posts.defer('id', async () => ranked).findMany();
+  return ranked.map((id) => rows.find((r) => r.id === id)!).filter(Boolean);
+}
+```
+
 Common SQL shapes that become named scopes:
 
 ```typescript

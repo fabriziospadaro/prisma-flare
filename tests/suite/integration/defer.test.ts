@@ -384,6 +384,50 @@ describe('defer()', () => {
     });
   });
 
+  describe('composition', () => {
+    beforeEach(async () => {
+      const user = await createUser({ name: 'Author', email: uniqueEmail() });
+      await DB.posts.create({ title: 'hot published', authorId: user.id, likes: 99, published: true });
+      await DB.posts.create({ title: 'hot draft', authorId: user.id, likes: 99, published: false });
+      await DB.posts.create({ title: 'cold published', authorId: user.id, likes: 0, published: true });
+    });
+
+    const hot = (qb: any) =>
+      qb.defer('id', () => prisma.$queryRawUnsafe<{ id: number }[]>(`SELECT id FROM "Post" WHERE likes > 3`));
+
+    it('combines a deferred scope with a normal one', async () => {
+      const rows = await hot(DB.posts).where({ published: true }).findMany();
+      expect(rows.map((p: any) => p.title)).toEqual(['hot published']);
+    });
+
+    it('is skipped entirely by when(false)', async () => {
+      const all = await DB.posts.when(false, (q: any) => hot(q)).count();
+      expect(all).toBe(3);
+    });
+
+    it('runs under when(true)', async () => {
+      const some = await DB.posts.when(true, (q: any) => hot(q)).count();
+      expect(some).toBe(2);
+    });
+
+    it('supports a resolver that only sets order and limit', async () => {
+      const rows = await DB.posts
+        .defer(async (qb) => {
+          qb.order({ likes: 'desc' }).limit(2);
+        })
+        .findMany();
+
+      expect(rows).toHaveLength(2);
+      expect(rows[0].likes).toBe(99);
+    });
+
+    it('throws when a resolver returns the builder instead of a filter', async () => {
+      await expect(
+        DB.posts.defer(async (qb) => qb.limit(1) as any).count()
+      ).rejects.toThrow(/returned the query builder/);
+    });
+  });
+
   describe('value handling', () => {
     it('drops nulls rather than sending them into an in filter', async () => {
       const user = await createUser({ name: 'Author', email: uniqueEmail() });

@@ -251,7 +251,19 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
     const resolver = fieldOrResolver;
     this.deferred.push(async (target) => {
       const filter = await resolver(target);
-      if (filter) target.where(filter as WhereInput<T>);
+      if (!filter) return;
+
+      // `defer(async (qb) => qb.limit(10))` returns the builder from the arrow
+      // body, which would be merged as a filter and recurse. Catch the mistake
+      // here rather than letting it become a stack overflow at query time.
+      if (filter instanceof FlareBuilder) {
+        throw new Error(
+          'prisma-flare: a defer() resolver returned the query builder. Use a block body ' +
+            '(`async (qb) => { qb.limit(10); }`) so it returns nothing, or return a where filter.'
+        );
+      }
+
+      target.where(filter as WhereInput<T>);
     });
     return this;
   }

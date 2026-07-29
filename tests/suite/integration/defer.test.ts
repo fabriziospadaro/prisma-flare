@@ -330,6 +330,94 @@ describe('defer()', () => {
     });
   });
 
+  describe('relations', () => {
+    it('resolves a deferred scope inside an include callback', async () => {
+      const user = await createUser({ name: 'Author', email: uniqueEmail() });
+      const hot = await DB.posts.create({ title: 'hot', authorId: user.id, likes: 99 });
+      await DB.posts.create({ title: 'cold', authorId: user.id, likes: 0 });
+
+      const rows = await DB.users
+        .include('posts', (q: any) => q.defer('id', async () => [hot.id]))
+        .findMany();
+
+      const titles = ((rows[0] as any).posts ?? []).map((p: any) => p.title);
+      expect(titles).toEqual(['hot']);
+    });
+
+    it('combines a deferred scope with a normal where inside an include', async () => {
+      const user = await createUser({ name: 'Author', email: uniqueEmail() });
+      const hot = await DB.posts.create({ title: 'hot', authorId: user.id, likes: 99 });
+      await DB.posts.create({ title: 'cold', authorId: user.id, likes: 0 });
+
+      const rows = await DB.users
+        .include('posts', (q: any) =>
+          q.where({ likes: { gt: 50 } }).defer('id', async () => [hot.id])
+        )
+        .findMany();
+
+      expect((rows[0] as any).posts).toHaveLength(1);
+    });
+
+    it('applies an empty deferred set inside an include', async () => {
+      const user = await createUser({ name: 'Author', email: uniqueEmail() });
+      await DB.posts.create({ title: 'hot', authorId: user.id, likes: 99 });
+
+      const rows = await DB.users
+        .include('posts', (q: any) => q.defer('id', async () => []))
+        .findMany();
+
+      expect((rows[0] as any).posts).toHaveLength(0);
+    });
+
+    it('resolves deferred work on the parent and the relation together', async () => {
+      const user = await createUser({ name: 'Author', email: uniqueEmail() });
+      const hot = await DB.posts.create({ title: 'hot', authorId: user.id, likes: 99 });
+      await DB.posts.create({ title: 'cold', authorId: user.id, likes: 0 });
+
+      const rows = await DB.users
+        .defer('id', async () => [user.id])
+        .include('posts', (q: any) => q.defer('id', async () => [hot.id]))
+        .findMany();
+
+      expect(rows).toHaveLength(1);
+      expect((rows[0] as any).posts).toHaveLength(1);
+    });
+  });
+
+  describe('value handling', () => {
+    it('drops nulls rather than sending them into an in filter', async () => {
+      const user = await createUser({ name: 'Author', email: uniqueEmail() });
+      await DB.posts.create({ title: 'p', authorId: user.id });
+
+      const count = await DB.posts
+        .defer('authorId', async () => [null as any, user.id])
+        .count();
+
+      expect(count).toBe(1);
+    });
+
+    it('ANDs two deferred filters on the same field', async () => {
+      const user = await createUser({ name: 'Author', email: uniqueEmail() });
+      const a = await DB.posts.create({ title: 'a', authorId: user.id });
+      const b = await DB.posts.create({ title: 'b', authorId: user.id });
+
+      const rows = await DB.posts
+        .defer('id', async () => [a.id, b.id])
+        .defer('id', async () => [b.id])
+        .findMany();
+
+      expect(rows.map((p) => p.title)).toEqual(['b']);
+    });
+
+    it('handles a large value set', async () => {
+      const user = await createUser({ name: 'Author', email: uniqueEmail() });
+      const post = await DB.posts.create({ title: 'p', authorId: user.id });
+      const ids = [post.id, ...Array.from({ length: 20000 }, (_, i) => i + 100000)];
+
+      expect(await DB.posts.defer('id', async () => ids).count()).toBe(1);
+    });
+  });
+
   describe('clone()', () => {
     it('copies pending deferred work to the clone', async () => {
       await createUser({ name: 'Alpha One', email: uniqueEmail(), status: 'active' });

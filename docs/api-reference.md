@@ -482,6 +482,15 @@ costliestFirst(n: number) {
 - A resolver must not run a terminal on the builder it is resolving. That query
   is still being assembled, so it throws with a descriptive error instead of
   deadlocking. Use a separate builder or the raw client inside a resolver.
+- Deferred scopes work inside `include()` callbacks. The relation's query is
+  settled before the parent query runs, so a deferred relation filter applies
+  as written.
+- `null` and `undefined` values are dropped from the field shorthand's `in`
+  filter, since SQL `IN` never matches NULL. A NULL from an outer join or a
+  nullable foreign key therefore narrows the set rather than erroring. To match
+  null rows, write the filter yourself with the filter form.
+- `getQuery()` reflects deferred work only after a terminal has run, because
+  resolvers execute at query time.
 
 **Type safety**
 

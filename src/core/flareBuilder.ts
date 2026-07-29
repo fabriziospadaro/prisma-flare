@@ -238,7 +238,12 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
               `or return the values directly.`
           );
         });
-        target.where({ [field]: { in: values } } as WhereInput<T>);
+        // Prisma rejects null inside `in`, and SQL `IN` never matches NULL
+        // anyway, so a NULL row (outer join miss, nullable FK) is dropped
+        // rather than turned into a filter the caller did not ask for.
+        const present = values.filter((value) => value !== null && value !== undefined);
+
+        target.where({ [field]: { in: present } } as WhereInput<T>);
       });
       return this;
     }
@@ -546,7 +551,11 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
   }
 
   /**
-   * Returns the current query object
+   * Returns the current query object.
+   *
+   * Note: work queued by defer() resolves at execution time, so it is absent
+   * here until a terminal method has run. Await the query first if you are
+   * inspecting a builder that uses deferred scopes.
    */
   getQuery(): QueryArgs {
     return this.query;
@@ -589,6 +598,22 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
       const builder = modelRegistry.create(relation as string)
         ?? new FlareBuilder<any>(null as any);
       callback(builder);
+
+      // A relation scope may be deferred (raw SQL, an external service). The
+      // nested builder is never executed, so adopt its pending work and settle
+      // it against the relation's own query before this query runs.
+      const nested = builder as FlareBuilder<any, any>;
+      const pending = nested.deferred;
+      if (pending.length > 0) {
+        nested.deferred = [];
+        this.deferred.push(async () => {
+          for (const resolver of pending) await resolver(nested);
+          const resolved = nested.getQuery();
+          (this.query.include as any)[relation] =
+            Object.keys(resolved).length === 0 ? true : resolved;
+        });
+      }
+
       relationQuery = builder.getQuery();
 
       if (Object.keys(relationQuery).length === 0) {

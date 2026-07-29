@@ -150,7 +150,7 @@ type GetRelationModel<K extends string> = K extends keyof RelationModelMap
 export default class FlareBuilder<T extends ModelName, Args extends Record<string, any> = Record<string, never>> {
   protected model: ModelDelegate<T>;
   protected query: QueryArgs;
-  private deferred: Array<(qb: this) => Promise<unknown>> = [];
+  private deferred: Array<(target: this) => Promise<unknown>> = [];
   private resolution?: Promise<void>;
   private settling = false;
 
@@ -160,31 +160,85 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
   }
 
   /**
-   * Queues async work to run right before the query executes, so a scope
-   * backed by raw SQL (or any other await) stays synchronously chainable.
+   * Queues async work to run right before the query executes, so a scope backed
+   * by raw SQL (or any other await) stays synchronously chainable.
    *
-   * The callback receives this builder and typically narrows it with where().
-   * Callbacks run in registration order at execution time, and each one runs at
-   * most once per builder no matter how many terminals execute on it.
+   * Return a where filter to have it merged into the query, or return nothing
+   * and refine `this` directly. The resolver can set anything a scope can:
+   * where, order, limit, select, include.
    *
    * @param resolver - Async function that refines the query before it runs
    *
    * @example
-   * class User extends FlareBuilder<'user'> {
-   *   random(n = 1) {
-   *     return this.defer(async (qb) => {
-   *       const rows = await db.$queryRaw<{ id: number }[]>`
-   *         SELECT id FROM "User" ORDER BY RANDOM() LIMIT ${n}`;
-   *       qb.where({ id: { in: rows.map((r) => r.id) } });
-   *     });
-   *   }
+   * // Return a filter and it gets merged:
+   * recentlyActive(days: number) {
+   *   return this.defer(async () => {
+   *     const rows = await db.$queryRaw<{ id: string }[]>`
+   *       SELECT DISTINCT "userId" AS id FROM "Session"
+   *       WHERE "createdAt" > NOW() - ${days} * INTERVAL '1 day'`;
+   *     return { id: { in: rows.map((r) => r.id) } };
+   *   });
+   * }
+   *
+   * @example
+   * // Or refine `this` for anything that isn't a filter:
+   * costliestFirst() {
+   *   return this.defer(async () => {
+   *     const rows = await db.$queryRaw<{ id: string }[]>`...`;
+   *     this.where({ id: { in: rows.map((r) => r.id) } }).order({ total: 'desc' }).limit(10);
+   *   });
+   * }
+   */
+  defer(resolver: (qb: this) => Promise<WhereInput<T> | void>): this;
+
+  /**
+   * Field shorthand: resolve rows, pluck `field` from each, and filter the
+   * query to those values. Covers the common "raw SQL returns ids" case without
+   * a map() or a hand-written `in` filter.
+   *
+   * Rows may be objects containing the field, or the bare values themselves.
+   *
+   * @param field - Field to filter on, and the column plucked from each row
+   * @param resolver - Async function returning the rows (or values)
+   *
+   * @example
+   * random(n = 1) {
+   *   return this.defer('id', () => db.$queryRaw`
+   *     SELECT id FROM "User" ORDER BY RANDOM() LIMIT ${n}`);
    * }
    *
    * // Chains like any other scope, no await needed mid-chain:
    * await DB.users.random(4).active().order({ name: 'asc' }).findMany();
    */
-  defer(resolver: (qb: this) => Promise<unknown>): this {
-    this.deferred.push(resolver);
+  defer<K extends keyof RecordType<T> & string>(
+    field: K,
+    resolver: () => Promise<Array<Record<K, RecordType<T>[K]> | RecordType<T>[K]>>
+  ): this;
+
+  defer(
+    fieldOrResolver: string | ((qb: this) => Promise<unknown>),
+    maybeResolver?: () => Promise<unknown[]>
+  ): this {
+    if (typeof fieldOrResolver === 'string') {
+      const field = fieldOrResolver;
+      const resolver = maybeResolver!;
+      this.deferred.push(async (target) => {
+        const rows = await resolver();
+        const values = rows.map((row) =>
+          row !== null && typeof row === 'object' && field in (row as object)
+            ? (row as Record<string, unknown>)[field]
+            : row
+        );
+        target.where({ [field]: { in: values } } as WhereInput<T>);
+      });
+      return this;
+    }
+
+    const resolver = fieldOrResolver;
+    this.deferred.push(async (target) => {
+      const filter = await resolver(target);
+      if (filter) target.where(filter as WhereInput<T>);
+    });
     return this;
   }
 

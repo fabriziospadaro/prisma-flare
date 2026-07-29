@@ -43,9 +43,7 @@ describe('defer()', () => {
       await createUser({ name: 'Beta One', email: uniqueEmail(), status: 'active' });
 
       const users = await DB.users
-        .defer(async (qb) => {
-          qb.where({ id: { in: await idsByName('Alpha') } });
-        })
+        .defer(async () => ({ id: { in: await idsByName('Alpha') } }))
         .order({ name: 'asc' })
         .findMany();
 
@@ -58,13 +56,13 @@ describe('defer()', () => {
       await createUser({ name: 'Alpha Two', email: uniqueEmail(), status: 'pending' });
 
       const deferFirst = await DB.users
-        .defer(async (qb) => { qb.where({ id: { in: await idsByName('Alpha') } }); })
+        .defer(async () => ({ id: { in: await idsByName('Alpha') } }))
         .where({ status: 'active' })
         .findMany();
 
       const deferLast = await DB.users
         .where({ status: 'active' })
-        .defer(async (qb) => { qb.where({ id: { in: await idsByName('Alpha') } }); })
+        .defer(async () => ({ id: { in: await idsByName('Alpha') } }))
         .findMany();
 
       expect(deferFirst).toHaveLength(1);
@@ -79,13 +77,72 @@ describe('defer()', () => {
 
       const order: string[] = [];
       const users = await DB.users
-        .defer(async (qb) => { order.push('first'); qb.where({ id: { in: await idsByName('Alpha') } }); })
-        .defer(async (qb) => { order.push('second'); qb.where({ id: { in: await idsByName('One') } }); })
+        .defer(async () => { order.push('first'); return { id: { in: await idsByName('Alpha') } }; })
+        .defer(async () => { order.push('second'); return { id: { in: await idsByName('One') } }; })
         .findMany();
 
       expect(order).toEqual(['first', 'second']);
       expect(users).toHaveLength(1);
       expect(users[0].name).toBe('Alpha One');
+    });
+  });
+
+  describe('field shorthand', () => {
+    beforeEach(async () => {
+      await createUser({ name: 'Alpha One', email: uniqueEmail(), status: 'active' });
+      await createUser({ name: 'Alpha Two', email: uniqueEmail(), status: 'pending' });
+      await createUser({ name: 'Beta One', email: uniqueEmail(), status: 'active' });
+    });
+
+    it('plucks the field from row objects and filters by it', async () => {
+      const users = await DB.users
+        .defer('id', () =>
+          prisma.$queryRawUnsafe<{ id: number }[]>(
+            `SELECT id FROM "User" WHERE name LIKE '%' || ? || '%'`,
+            'Alpha'
+          )
+        )
+        .order({ name: 'asc' })
+        .findMany();
+
+      expect(users.map((u) => u.name)).toEqual(['Alpha One', 'Alpha Two']);
+    });
+
+    it('accepts bare values instead of row objects', async () => {
+      const ids = await idsByName('Alpha');
+
+      const users = await DB.users.defer('id', async () => ids).findMany();
+
+      expect(users).toHaveLength(2);
+    });
+
+    it('composes with other scopes and with the filter form', async () => {
+      const users = await DB.users
+        .defer('id', () =>
+          prisma.$queryRawUnsafe<{ id: number }[]>(
+            `SELECT id FROM "User" WHERE name LIKE '%' || ? || '%'`,
+            'Alpha'
+          )
+        )
+        .where({ status: 'active' })
+        .defer(async () => ({ name: { contains: 'One' } }))
+        .findMany();
+
+      expect(users).toHaveLength(1);
+      expect(users[0].name).toBe('Alpha One');
+    });
+
+    it('works on a non-id field', async () => {
+      const users = await DB.users
+        .defer('name', async () => [{ name: 'Beta One' }])
+        .findMany();
+
+      expect(users).toHaveLength(1);
+      expect(users[0].name).toBe('Beta One');
+    });
+
+    it('yields no rows for an empty result set', async () => {
+      expect(await DB.users.defer('id', async () => []).count()).toBe(0);
     });
   });
 
@@ -97,7 +154,7 @@ describe('defer()', () => {
     });
 
     const deferAlpha = () =>
-      DB.users.defer(async (qb) => { qb.where({ id: { in: await idsByName('Alpha') } }); });
+      DB.users.defer(async () => ({ id: { in: await idsByName('Alpha') } }));
 
     it('count() resolves deferred work', async () => {
       expect(await deferAlpha().count()).toBe(2);
@@ -111,7 +168,7 @@ describe('defer()', () => {
     it('exists() resolves deferred work', async () => {
       expect(await deferAlpha().exists()).toBe(true);
       const none = await DB.users
-        .defer(async (qb) => { qb.where({ id: { in: await idsByName('Nobody') } }); })
+        .defer(async () => ({ id: { in: await idsByName('Nobody') } }))
         .exists();
       expect(none).toBe(false);
     });
@@ -154,7 +211,7 @@ describe('defer()', () => {
 
     it('aggregates resolve deferred work', async () => {
       const total = await DB.users
-        .defer(async (qb) => { qb.where({ id: { in: await idsByName('Alpha') } }); })
+        .defer(async () => ({ id: { in: await idsByName('Alpha') } }))
         .count();
       expect(total).toBe(2);
     });
@@ -166,9 +223,9 @@ describe('defer()', () => {
       await createUser({ name: 'Beta One', email: uniqueEmail() });
 
       let runs = 0;
-      const qb = DB.users.defer(async (b) => {
+      const qb = DB.users.defer(async () => {
         runs++;
-        b.where({ id: { in: await idsByName('Alpha') } });
+        return { id: { in: await idsByName('Alpha') } };
       });
 
       const first = await qb.count();
@@ -184,9 +241,9 @@ describe('defer()', () => {
       await createUser({ name: 'Beta One', email: uniqueEmail() });
 
       let runs = 0;
-      const qb = DB.users.defer(async (b) => {
+      const qb = DB.users.defer(async () => {
         runs++;
-        b.where({ id: { in: await idsByName('Alpha') } });
+        return { id: { in: await idsByName('Alpha') } };
       });
 
       const [a, b] = await Promise.all([qb.count(), qb.count()]);
@@ -216,14 +273,14 @@ describe('defer()', () => {
       await createUser({ name: 'Alpha Two', email: uniqueEmail() });
       await createUser({ name: 'Beta One', email: uniqueEmail() });
 
-      const qb = DB.users.defer(async (b) => {
-        b.where({ id: { in: await idsByName('Alpha') } });
+      const qb = DB.users.defer(async () => {
+        return { id: { in: await idsByName('Alpha') } };
       });
 
       expect(await qb.count()).toBe(2);
 
-      qb.defer(async (b) => {
-        b.where({ id: { in: await idsByName('One') } });
+      qb.defer(async () => {
+        return { id: { in: await idsByName('One') } };
       });
 
       expect(await qb.count()).toBe(1);
@@ -232,13 +289,12 @@ describe('defer()', () => {
     it('throws instead of deadlocking when a resolver queries its own builder', async () => {
       await createUser({ name: 'Alpha One', email: uniqueEmail() });
 
-      await expect(
-        DB.users
-          .defer(async (qb) => {
-            await qb.count();
-          })
-          .count()
-      ).rejects.toThrow(/builder it is resolving/);
+      const qb = DB.users;
+      qb.defer(async () => {
+        await qb.count();
+      });
+
+      await expect(qb.count()).rejects.toThrow(/builder it is resolving/);
     });
 
     it('keeps a failed resolver failing instead of silently retrying', async () => {
@@ -257,9 +313,9 @@ describe('defer()', () => {
       await createUser({ name: 'Alpha Two', email: uniqueEmail(), status: 'pending' });
       await createUser({ name: 'Beta One', email: uniqueEmail(), status: 'active' });
 
-      const base = DB.users.defer(async (qb) => {
-        qb.where({ id: { in: await idsByName('Alpha') } });
-      });
+      const base = DB.users.defer(async () => ({
+        id: { in: await idsByName('Alpha') },
+      }));
 
       const active = await base.clone().where({ status: 'active' }).findMany();
       const pending = await base.clone().where({ status: 'pending' }).findMany();

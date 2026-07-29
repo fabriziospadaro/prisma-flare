@@ -305,6 +305,59 @@ describe('Type Safety', () => {
       });
     });
 
+    describe('defer()', () => {
+      it('filter form returns the builder for further chaining', () => {
+        const builder = DB.users
+          .defer(async () => ({ status: 'active' }))
+          .order({ name: 'asc' })
+          .limit(5);
+        expectTypeOf(builder.findMany).toBeFunction();
+      });
+
+      it('filter form accepts a resolver returning void', () => {
+        const builder = DB.users.defer(async () => {});
+        expectTypeOf(builder.findMany).toBeFunction();
+      });
+
+      it('field form returns the builder for further chaining', () => {
+        const builder = DB.users
+          .defer('id', async () => [{ id: 1 }])
+          .where({ status: 'active' });
+        expectTypeOf(builder.findMany).toBeFunction();
+      });
+
+      it('field form accepts bare values', () => {
+        const builder = DB.users.defer('id', async () => [1, 2, 3]);
+        expectTypeOf(builder.findMany).toBeFunction();
+      });
+
+      it('preserves the Args generic so select/include results stay typed', async () => {
+        const users = await DB.users
+          .defer(async () => ({ status: 'active' }))
+          .select({ id: true, email: true })
+          .findMany();
+        expectTypeOf(users).toBeArray();
+        expectTypeOf(users).items.toHaveProperty('id');
+        expectTypeOf(users).items.toHaveProperty('email');
+        expectTypeOf(users).items.not.toHaveProperty('name');
+      });
+
+      it('rejects an unknown field name', () => {
+        // @ts-expect-error 'nope' is not a field on User
+        DB.users.defer('nope', async () => []);
+      });
+
+      it('rejects a filter on an unknown field', () => {
+        // @ts-expect-error 'nope' is not a field on User
+        DB.users.defer(async () => ({ nope: true }));
+      });
+
+      it('rejects a synchronous resolver', () => {
+        // @ts-expect-error resolver must return a promise
+        DB.users.defer(() => ({ status: 'active' }));
+      });
+    });
+
     describe('getQuery()', () => {
       it('returns query object', () => {
         const query = DB.users.where({ status: 'active' }).limit(10).getQuery();

@@ -411,10 +411,13 @@ const recent = baseQuery.clone().order({ createdAt: 'desc' }).findMany();
 const popular = baseQuery.clone().order({ likes: 'desc' }).findMany();
 ```
 
-### `defer(resolver)`
+### `defer(resolver)` / `defer(field, resolver)`
 Queues async work to run right before the query executes. This keeps a scope
 backed by raw SQL (or any other `await`) synchronously chainable, so callers
 never see a promise in the middle of a chain.
+
+**Field shorthand.** Pass a field name and the resolved rows are plucked and
+filtered for you, which covers the common "raw SQL returns ids" case:
 
 ```typescript
 class User extends FlareBuilder<'user'> {
@@ -424,11 +427,8 @@ class User extends FlareBuilder<'user'> {
 
   // Prisma has no random ordering, so drop to SQL without breaking the chain
   random(n = 1) {
-    return this.defer(async (qb) => {
-      const rows = await db.$queryRaw<{ id: string }[]>`
-        SELECT id FROM "User" ORDER BY RANDOM() LIMIT ${n}`;
-      qb.where({ id: { in: rows.map((r) => r.id) } });
-    });
+    return this.defer('id', () => db.$queryRaw`
+      SELECT id FROM "User" ORDER BY RANDOM() LIMIT ${n}`);
   }
 }
 ```
@@ -438,18 +438,47 @@ class User extends FlareBuilder<'user'> {
 const picked = await DB.users.random(4).active().order({ name: 'asc' }).findMany();
 ```
 
+Rows may be objects containing the field, or the bare values themselves, so
+`[{ id: 1 }]` and `[1]` both work.
+
+**Filter form.** Return a where filter and it gets merged into the query:
+
+```typescript
+recentlyActive(days: number) {
+  return this.defer(async () => {
+    const rows = await db.$queryRaw<{ id: string }[]>`
+      SELECT DISTINCT "userId" AS id FROM "Session"
+      WHERE "createdAt" > NOW() - ${days} * INTERVAL '1 day'`;
+    return { id: { in: rows.map((r) => r.id) } };
+  });
+}
+```
+
+**Generic form.** Return nothing and refine the builder directly. A resolver can
+set anything a scope can, not just filters:
+
+```typescript
+costliestFirst(n: number) {
+  return this.defer(async (qb) => {
+    const rows = await db.$queryRaw<{ id: string }[]>`...`;
+    qb.where({ id: { in: rows.map((r) => r.id) } }).order({ total: 'desc' }).limit(n);
+  });
+}
+```
+
 **Semantics**
 
 - Resolvers run in registration order, immediately before the query executes.
 - Every terminal method resolves pending work, including `paginate`, `chunk`,
   `pluck`, `only`, `exists`, the aggregates, and the write methods.
 - Because resolvers run at execution time, they observe conditions added after
-  `defer()` was called.
+  `defer()` was called, and `select`/`include` result typing is unaffected.
 - Each resolver runs at most once per builder. Repeated or concurrent terminals
   on the same builder await one shared resolution instead of re-issuing the SQL.
 - A failed resolver stays failed: the rejection is replayed to later terminals
   rather than silently retrying the query.
-- `clone()` copies unresolved work, so each clone resolves against its own query.
+- `clone()` copies unresolved work, and each clone resolves against its own
+  query, so branching a deferred base query is safe.
 - A resolver must not run a terminal on the builder it is resolving. That query
   is still being assembled, so it throws with a descriptive error instead of
   deadlocking. Use a separate builder or the raw client inside a resolver.

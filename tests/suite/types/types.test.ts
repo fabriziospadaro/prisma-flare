@@ -347,6 +347,21 @@ describe('Type Safety', () => {
         DB.users.defer('nope', async () => []);
       });
 
+      it('rejects rows whose column does not match the field', () => {
+        // @ts-expect-error rows expose 'email', not 'id'
+        DB.users.defer('id', async () => [{ email: 'a@b.c' }]);
+      });
+
+      it('rejects values of the wrong type for the field', () => {
+        // @ts-expect-error id is a number, not a string
+        DB.users.defer('id', async () => ['not-a-number']);
+      });
+
+      it('accepts rows aliased to the field name', () => {
+        const builder = DB.users.defer('id', async () => [{ id: 1 }, { id: 2 }]);
+        expectTypeOf(builder.findMany).toBeFunction();
+      });
+
       it('rejects a filter on an unknown field', () => {
         // @ts-expect-error 'nope' is not a field on User
         DB.users.defer(async () => ({ nope: true }));

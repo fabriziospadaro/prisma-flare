@@ -144,6 +144,29 @@ describe('defer()', () => {
     it('yields no rows for an empty result set', async () => {
       expect(await DB.users.defer('id', async () => []).count()).toBe(0);
     });
+
+    it('accepts a single-column row under any alias', async () => {
+      const users = await DB.users
+        .defer('id', () =>
+          prisma.$queryRawUnsafe<{ id: number }[]>(
+            `SELECT id AS "userId" FROM "User" WHERE name LIKE '%' || ? || '%'`,
+            'Alpha'
+          )
+        )
+        .count();
+
+      expect(users).toBe(2);
+    });
+
+    it('throws a descriptive error when a multi-column row lacks the field', async () => {
+      await expect(
+        DB.users
+          .defer('id', () =>
+            prisma.$queryRawUnsafe<any[]>(`SELECT name, email FROM "User" LIMIT 1`)
+          )
+          .count()
+      ).rejects.toThrow(/without a 'id' property \(found: name, email\)/);
+    });
   });
 
   describe('terminal coverage', () => {

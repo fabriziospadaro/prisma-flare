@@ -482,3 +482,84 @@ costliestFirst(n: number) {
 - A resolver must not run a terminal on the builder it is resolving. That query
   is still being assembled, so it throws with a descriptive error instead of
   deadlocking. Use a separate builder or the raw client inside a resolver.
+
+**Type safety**
+
+The field form is checked at compile time. If your resolver returns typed rows,
+TypeScript rejects a field that doesn't exist on the model, rows whose columns
+don't include that field, and values of the wrong type:
+
+```typescript
+DB.users.defer('nope', async () => []);              // error: no such field
+DB.users.defer('id', async () => [{ email: 'a@b' }]) // error: rows have no 'id'
+DB.users.defer('id', async () => ['not-a-number']);  // error: id is a number
+```
+
+`$queryRaw` returns `any` unless you annotate it, so annotate the row type and
+the compiler does the work:
+
+```typescript
+this.defer('authorId', () =>
+  db.$queryRaw<{ authorId: number }[]>`SELECT "authorId" FROM "Post"`);
+```
+
+A single-column row is accepted under any alias, since there's no ambiguity
+about which value was meant. For unannotated multi-column rows the mismatch
+surfaces at runtime with a message naming the columns it did find.
+
+**Beyond raw SQL**
+
+Nothing about `defer()` is SQL-specific. It resolves any async source of query
+constraints:
+
+```typescript
+// Search engine or vector store returning ids
+matching(term: string) {
+  return this.defer('id', () => searchIndex.query(term));
+}
+
+// Feature flag deciding a filter, no database involved
+visible() {
+  return this.defer(async () =>
+    (await flags.enabled('drafts')) ? {} : { published: true });
+}
+
+// Cached id set, so repeat calls skip the work
+cachedHot() {
+  return this.defer('id', () => cache.getOrCompute('hot', fetchHotIds));
+}
+
+// Permission service deciding what this viewer may see
+visibleTo(viewerId: string) {
+  return this.defer('workspaceId', () => acl.workspacesFor(viewerId));
+}
+```
+
+Common SQL shapes that become named scopes:
+
+```typescript
+// Recursive CTE: everyone under a manager
+underManager(id: string) {
+  return this.defer('authorId', () => db.$queryRaw<{ authorId: string }[]>`
+    WITH RECURSIVE subtree AS (
+      SELECT id FROM "User" WHERE "managerId" = ${id}
+      UNION ALL
+      SELECT u.id FROM "User" u JOIN subtree s ON u."managerId" = s.id
+    ) SELECT id AS "authorId" FROM subtree`);
+}
+
+// Window function: top row per group
+topPerAuthor() {
+  return this.defer('id', () => db.$queryRaw<{ id: string }[]>`
+    SELECT id FROM (
+      SELECT id, ROW_NUMBER() OVER (PARTITION BY "authorId" ORDER BY likes DESC) rn
+      FROM "Post"
+    ) t WHERE rn = 1`);
+}
+
+// Aggregate threshold that Prisma's where cannot express
+fromProlificAuthors(min: number) {
+  return this.defer('authorId', () => db.$queryRaw<{ authorId: string }[]>`
+    SELECT "authorId" FROM "Post" GROUP BY "authorId" HAVING COUNT(*) >= ${min}`);
+}
+```

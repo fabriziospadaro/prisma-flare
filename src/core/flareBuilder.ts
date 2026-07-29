@@ -224,11 +224,20 @@ export default class FlareBuilder<T extends ModelName, Args extends Record<strin
       const resolver = maybeResolver!;
       this.deferred.push(async (target) => {
         const rows = await resolver();
-        const values = rows.map((row) =>
-          row !== null && typeof row === 'object' && field in (row as object)
-            ? (row as Record<string, unknown>)[field]
-            : row
-        );
+        const values = rows.map((row) => {
+          if (row === null || typeof row !== 'object') return row;
+          const keys = Object.keys(row);
+          if (field in row) return (row as Record<string, unknown>)[field];
+          // A single-column row is unambiguous, so accept it under any alias.
+          if (keys.length === 1) return (row as Record<string, unknown>)[keys[0]];
+          // Typed rows are caught at compile time; this only fires for `any`,
+          // which is what $queryRaw hands back unless the caller annotates it.
+          throw new Error(
+            `prisma-flare: defer('${field}', ...) received a row without a '${field}' property ` +
+              `(found: ${keys.join(', ')}). Alias the column as "${field}" in your query, ` +
+              `or return the values directly.`
+          );
+        });
         target.where({ [field]: { in: values } } as WhereInput<T>);
       });
       return this;

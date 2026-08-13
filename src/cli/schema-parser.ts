@@ -161,11 +161,20 @@ export function parseModelRelations(schemaContent: string): ParsedModel[] {
     let i = bodyStart;
     let inString = false;
     let stringChar = '';
+    let inLineComment = false;
     while (i < schemaContent.length && depth > 0) {
       const ch = schemaContent[i];
-      if (inString) {
+      if (inLineComment) {
+        if (ch === '\n') inLineComment = false;
+      } else if (inString) {
         if (ch === stringChar && schemaContent[i - 1] !== '\\') inString = false;
       } else {
+        // Skip /// (or //) line comments — they may contain apostrophes or braces
+        if (ch === '/' && i + 1 < schemaContent.length && schemaContent[i + 1] === '/') {
+          inLineComment = true;
+          i += 2;
+          continue;
+        }
         if (ch === '"' || ch === "'") {
           inString = true;
           stringChar = ch;
